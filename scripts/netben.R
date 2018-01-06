@@ -8,11 +8,11 @@ data(vignette)
 
 
 # Read Yeast TFs
-Yeast.TFs <- read.table("../data/RegulationTwoColumnTable_Documented_2013927.tsv",
-                        check.names = FALSE, header=FALSE, sep=";", quote="")
-Yeast.TFs <- levels(unique(Yeast.TFs[,1]))
-gene_to_ORF <- select(org.Sc.sgd.db, keys=Yeast.TFs, columns = c("ORF"),
-                      keytype="COMMON")
+#Yeast.TFs <- read.table("../data/RegulationTwoColumnTable_Documented_2013927.tsv",
+#                        check.names = FALSE, header=FALSE, sep=";", quote="")
+#Yeast.TFs <- levels(unique(Yeast.TFs[,1]))
+#gene_to_ORF <- select(org.Sc.sgd.db, keys=Yeast.TFs, columns = c("ORF"),
+#                      keytype="COMMON")
 
 
 # Define a wrapper function
@@ -36,8 +36,15 @@ BNFinder <- function(data){
   res[,3] <- 1
   g <- graph.data.frame(res)
   adj <- get.adjacency(g, attr='V2',sparse=FALSE)
+  if (length(colnames(data)) > length(colnames(adj))) {
+    missing <- colnames(data)[(!(colnames(data) %in% colnames(adj)))]
+    adj <- as.data.frame(adj)
+    adj[, missing] <- 0
+    adj[missing, ] <- 0
+    adj <- as.matrix(adj)
+  }
   
-  return(adj)
+  return(adj[,colnames(data)])
 }
 
 # Register it to all.fast methods
@@ -45,7 +52,7 @@ RegisterWrapper(c("ScanBMA", "BNFinder"))
 # Register it to all methods
 RegisterWrapper(c("ScanBMA", "BNFinder"), all.fast=FALSE)
 
-benchmark <- function(data, true.net, methods, sym=TRUE, no.top=100) {
+benchmark <- function(data, true.net, methods, sym=TRUE, no.top=50) {
   auroc <- netbenchmark.data(data=data, eval="AUROC", methods=methods, sym = sym,
                              no.topedges = no.top, true.net = true.net)
   aupr <- netbenchmark.data(data=data, methods=methods, sym = sym,
@@ -66,29 +73,30 @@ methods <- c("ScanBMA", "BNFinder", "aracne.wrap","c3net.wrap","clr.wrap",
                  "Genie3.wrap","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
     
-methods <- c("BNFinder")
+#methods <- c("BNFinder")
 #methods <- c("clr.wrap", "ScanBMA")
 #methods <- c("GeneNet.wrap")
 
-dream.bench <- function(data, gold, methods) {
+dream.bench <- function(data, gold, methods, sym=TRUE) {
   results <- c()
-  for (network in 1:length(data)) {
+  for (network in 2:2) {
     dat <- data[[network]][, -c(1:2)]
     true.net <- gold[[network]]
     true.net <- graph.data.frame(true.net)
     true.net <- get.adjacency(true.net, attr='edge',sparse=FALSE)
     true.net <- as.matrix(true.net[colnames(dat), colnames(dat)])
-    result <- benchmark(dat, true.net, methods)
+    result <- benchmark(dat, true.net, methods, sym)
     results <- c(results, list(result)) 
   }
-
-  return(results)
+  
   arr <- abind(results, along=3)
   average <- rowMeans(arr, dims = 2)
   
-  return(average[[1]])    
+  return(average)    
 }
   
-result <- dream.bench(dream4ts10, dream4gold10, methods)
-View(result)
+result <- dream.bench(dream4ts10, dream4gold10, methods, sym=TRUE)
+write.table(result, "result.txt", sep="\t", quote=FALSE)
+
+#View(result)
 
