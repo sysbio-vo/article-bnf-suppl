@@ -47,10 +47,34 @@ BNFinder <- function(data){
   return(adj[,colnames(data)])
 }
 
+BNFinderLim <- function(data){
+  path <- ""
+  dat_name <- "input.txt"
+  write.table(t(data), paste(path, dat_name, sep=""), sep="\t", quote=FALSE)
+  args <- paste(" -e ", path, dat_name, " -v -t -l 3 -i 30 output.txt -n output.tsv", sep="")
+  system(paste(path, "bnf", args, sep=""))
+  
+  res <- read.table("output.tsv")
+  res <- res[, c(1, 3, 2)]
+  #res[,3] <- 1
+  g <- graph.data.frame(res)
+  adj <- get.adjacency(g, attr='V2',sparse=FALSE)
+  if (length(colnames(data)) > length(colnames(adj))) {
+    missing <- colnames(data)[(!(colnames(data) %in% colnames(adj)))]
+    adj <- as.data.frame(adj)
+    adj[, missing] <- 0
+    adj[missing, ] <- 0
+    adj <- as.matrix(adj)
+  }
+  
+  return(adj[,colnames(data)])
+}
+
+
 # Register it to all.fast methods
-RegisterWrapper(c("ScanBMA", "BNFinder"))
+RegisterWrapper(c("ScanBMA", "BNFinder", "BNFinderLim"))
 # Register it to all methods
-RegisterWrapper(c("ScanBMA", "BNFinder"), all.fast=FALSE)
+RegisterWrapper(c("ScanBMA", "BNFinder", "BNFinderLim"), all.fast=FALSE)
 
 benchmark <- function(data, true.net, methods, sym=TRUE, no.top=50) {
   auroc <- netbenchmark.data(data=data, eval="AUROC", methods=methods, sym = sym,
@@ -73,11 +97,11 @@ methods <- c("ScanBMA", "BNFinder", "aracne.wrap","c3net.wrap","clr.wrap",
                  "Genie3.wrap","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
     
-#methods <- c("BNFinder")
+#methods <- c("BNFinderLim")
 #methods <- c("clr.wrap", "ScanBMA")
 #methods <- c("GeneNet.wrap")
 
-dream.bench <- function(data, gold, methods, sym=TRUE) {
+dream.bench <- function(data, gold, methods, sym=TRUE, no.top=50) {
   results <- c()
   for (network in 2:2) {
     dat <- data[[network]][, -c(1:2)]
@@ -94,9 +118,24 @@ dream.bench <- function(data, gold, methods, sym=TRUE) {
   
   return(average)    
 }
-  
-result <- dream.bench(dream4ts10, dream4gold10, methods, sym=TRUE)
-write.table(result, "result.txt", sep="\t", quote=FALSE)
+ 
+data = dream4ts10
+gold = dream4gold10
+
+result <- dream.bench(data, gold, methods, no.top=20, sym=FALSE)
+write.table(result, "top20.txt", sep="\t", quote=FALSE)
+result <- dream.bench(data, gold, methods, no.top=50, sym=FALSE)
+write.table(result, "top50.txt", sep="\t", quote=FALSE)
+result <- dream.bench(data, gold, methods, no.top=80, sym=FALSE)
+write.table(result, "top80.txt", sep="\t", quote=FALSE)
+
+result <- dream.bench(data, gold, methods, no.top=20, sym=TRUE)
+write.table(result, "top20sym.txt", sep="\t", quote=FALSE)
+result <- dream.bench(data, gold, methods, no.top=50, sym=TRUE)
+write.table(result, "top50sym.txt", sep="\t", quote=FALSE)
+result <- dream.bench(data, gold, methods, no.top=80, sym=TRUE)
+write.table(result, "top80sym.txt", sep="\t", quote=FALSE)
+
 
 #View(result)
 
