@@ -23,10 +23,27 @@ ScanBMA <- function(data){
   return(adj[,colnames(data)])
 }
 
+# Define a wrapper function
+BNFinder <- function(data){
+  path <- ""
+  dat_name <- "input.txt"
+  write.table(t(data), paste(path, dat_name, sep=""), sep="\t", quote=FALSE)
+  args <- paste(" -e ", path, dat_name, " -v -t output.txt -n output.tsv", sep="")
+  system(paste(path, "bnf", args, sep=""))
+  
+  res <- read.table("output.tsv")
+  res <- res[, c(1, 3, 2)]
+  res[,3] <- 1
+  g <- graph.data.frame(res)
+  adj <- get.adjacency(g, attr='V2',sparse=FALSE)
+  
+  return(adj)
+}
+
 # Register it to all.fast methods
-RegisterWrapper("ScanBMA")
+RegisterWrapper(c("ScanBMA", "BNFinder"))
 # Register it to all methods
-RegisterWrapper("ScanBMA", all.fast=FALSE)
+RegisterWrapper(c("ScanBMA", "BNFinder"), all.fast=FALSE)
 
 benchmark <- function(data, true.net, methods, sym=TRUE, no.top=100) {
   auroc <- netbenchmark.data(data=data, eval="AUROC", methods=methods, sym = sym,
@@ -45,10 +62,11 @@ benchmark <- function(data, true.net, methods, sym=TRUE, no.top=100) {
   return(result)
 }
 
-methods <- c("ScanBMA", "aracne.wrap","c3net.wrap","clr.wrap",
+methods <- c("ScanBMA", "BNFinder", "aracne.wrap","c3net.wrap","clr.wrap",
                  "Genie3.wrap","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
     
+methods <- c("BNFinder")
 #methods <- c("clr.wrap", "ScanBMA")
 #methods <- c("GeneNet.wrap")
 
@@ -74,4 +92,3 @@ dream.bench <- function(data, gold, methods) {
 result <- dream.bench(dream4ts10, dream4gold10, methods)
 View(result)
 
-system("./test.sh")
