@@ -24,16 +24,26 @@ ScanBMA <- function(data){
 }
 
 # Define a wrapper function
-BNFinder <- function(data){
+BNFinder <- function(data, lim=0, sub=0, k=0){
   path <- ""
   dat_name <- "input.txt"
   write.table(t(data), paste(path, dat_name, sep=""), sep="\t", quote=FALSE)
-  args <- paste(" -e ", path, dat_name, " -v -t output.txt -n output.tsv", sep="")
+  cores = ""
+  if (k!=0) {
+    cores = paste(" -k ", k, sep="")
+  }
+  if ((lim==0)&&(sub==0)) {
+    args <- paste(" -e ", path, dat_name, cores, " -v -t output.txt -n output.tsv", sep="")
+  } else {
+    args <- paste(" -e ", path, dat_name, cores, " -l ",lim, " -i ", sub, " -v -t output.txt -n output.tsv", sep="")
+  }
   system(paste(path, "bnf", args, sep=""))
   
   res <- read.table("output.tsv")
   res <- res[, c(1, 3, 2)]
-  res[,3] <- 1
+  if ((lim==0)&&(sub==0)) {
+    res[,3] <- 1
+  }
   g <- graph.data.frame(res)
   adj <- get.adjacency(g, attr='V2',sparse=FALSE)
   if (length(colnames(data)) > length(colnames(adj))) {
@@ -47,34 +57,54 @@ BNFinder <- function(data){
   return(adj[,colnames(data)])
 }
 
-BNFinderLim <- function(data){
-  path <- ""
-  dat_name <- "input.txt"
-  write.table(t(data), paste(path, dat_name, sep=""), sep="\t", quote=FALSE)
-  args <- paste(" -e ", path, dat_name, " -v -t -l 3 -i 30 output.txt -n output.tsv", sep="")
-  system(paste(path, "bnf", args, sep=""))
-  
-  res <- read.table("output.tsv")
-  res <- res[, c(1, 3, 2)]
-  #res[,3] <- 1
-  g <- graph.data.frame(res)
-  adj <- get.adjacency(g, attr='V2',sparse=FALSE)
-  if (length(colnames(data)) > length(colnames(adj))) {
-    missing <- colnames(data)[(!(colnames(data) %in% colnames(adj)))]
-    adj <- as.data.frame(adj)
-    adj[, missing] <- 0
-    adj[missing, ] <- 0
-    adj <- as.matrix(adj)
-  }
-  
-  return(adj[,colnames(data)])
+BNFinderL3I30 <- function(data, k = 0){
+  return(BNFinder(data, lim=3, sub=30, k=k))
+}
+
+BNFinderL3I20 <- function(data, k = 0){
+  return(BNFinder(data, lim=3, sub=20, k=k))
+}
+
+BNFinderL3I10 <- function(data, k = 0){
+  return(BNFinder(data, lim=3, sub=10, k=k))
+}
+
+BNFinderL2I30 <- function(data, k = 0){
+  return(BNFinder(data, lim=2, sub=30, k=k))
+}
+
+BNFinderL2I20 <- function(data, k = 0){
+  return(BNFinder(data, lim=2, sub=20, k=k))
+}
+
+BNFinderL2I10 <- function(data, k = 0){
+  return(BNFinder(data, lim=2, sub=10, k=k))
+}
+
+BNFinderL1I30 <- function(data, k = 0){
+  return(BNFinder(data, lim=1, sub=30, k=k))
+}
+
+BNFinderL1I20 <- function(data, k = 0){
+  return(BNFinder(data, lim=1, sub=20, k=k))
+}
+
+BNFinderL1I10 <- function(data, k = 0){
+  return(BNFinder(data, lim=1, sub=10, k=k))
 }
 
 
 # Register it to all.fast methods
-RegisterWrapper(c("ScanBMA", "BNFinder", "BNFinderLim"))
-# Register it to all methods
-RegisterWrapper(c("ScanBMA", "BNFinder", "BNFinderLim"), all.fast=FALSE)
+RegisterWrapper(c("ScanBMA", "BNFinder",
+                  "BNFinderL3I30", "BNFinderL3I20", "BNFinderL3I10",
+                  "BNFinderL2I30", "BNFinderL2I20", "BNFinderL2I10",
+                  "BNFinderL1I30", "BNFinderL1I20", "BNFinderL1I10"))
+                  # Register it to all methods
+RegisterWrapper(c("ScanBMA", "BNFinder",
+                  "BNFinderL3I30", "BNFinderL3I20", "BNFinderL3I10",
+                  "BNFinderL2I30", "BNFinderL2I20", "BNFinderL2I10",
+                  "BNFinderL1I30", "BNFinderL1I20", "BNFinderL1I10"),
+                all.fast=FALSE)
 
 benchmark <- function(data, true.net, methods, sym=TRUE, no.top=50) {
   auroc <- netbenchmark.data(data=data, eval="AUROC", methods=methods, sym = sym,
@@ -97,7 +127,11 @@ methods <- c("ScanBMA", "BNFinder", "aracne.wrap","c3net.wrap","clr.wrap",
                  "Genie3.wrap","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
     
-#methods <- c("BNFinderLim")
+methods <- c("BNFinderL3I30", "BNFinderL3I20", "BNFinderL3I10",
+             "BNFinderL2I30", "BNFinderL2I20", "BNFinderL2I10",
+             "BNFinderL1I30", "BNFinderL1I20", "BNFinderL1I10")
+
+
 #methods <- c("clr.wrap", "ScanBMA")
 #methods <- c("GeneNet.wrap")
 
@@ -109,7 +143,7 @@ dream.bench <- function(data, gold, methods, sym=TRUE, no.top=50) {
     true.net <- graph.data.frame(true.net)
     true.net <- get.adjacency(true.net, attr='edge',sparse=FALSE)
     true.net <- as.matrix(true.net[colnames(dat), colnames(dat)])
-    result <- benchmark(dat, true.net, methods, sym)
+    result <- benchmark(dat, true.net, methods, sym, no.top)
     results <- c(results, list(result)) 
   }
   
