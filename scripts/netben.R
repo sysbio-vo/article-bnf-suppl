@@ -20,7 +20,7 @@ ScanBMA <- function(data){
   edges <- networkBMA(data = data, nTimePoints = nrow(data))
   g <- graph.data.frame(edges)
   adj <- get.adjacency(g, attr='PostProb',sparse=FALSE)
-  return(adj[,colnames(data)])
+  return(adj[colnames(data),colnames(data)])
 }
 
 # Define a wrapper function
@@ -41,7 +41,10 @@ BNFinder <- function(data, lim=0, sub=0, k=10){
   } else if ((lim!=0)&&(sub!=0)) {
     args <- paste(" -e ", path, dat_name, cores, " -l ",lim, " -i ", sub, " -v -t output.txt -n output.tsv", sep="")
   }
-  system(paste(path, "bnf", args, sep=""))
+
+  cmd <- paste(path, "bnf", args, sep="")
+  print(cmd)
+  system(cmd)
   
   res <- read.table("output.tsv")
   res <- res[, c(1, 3, 2)]
@@ -59,83 +62,83 @@ BNFinder <- function(data, lim=0, sub=0, k=10){
     adj <- as.matrix(adj)
   }
   
-  return(adj[,colnames(data)])
+  return(adj[colnames(data),colnames(data)])
 }
 
-BNFinderL3 <- function(data, k = 0){
-  return(BNFinder(data, lim=3, sub=0, k=k))
+BNFinderL3 <- function(data){
+  return(BNFinder(data, lim=3, sub=0))
 }
 
-BNFinderL2 <- function(data, k = 0){
-  return(BNFinder(data, lim=2, sub=0, k=k))
+BNFinderL2 <- function(data){
+  return(BNFinder(data, lim=2, sub=0))
 }
 
-BNFinderL1 <- function(data, k = 0){
-  return(BNFinder(data, lim=1, sub=0, k=k))
+BNFinderL1 <- function(data){
+  return(BNFinder(data, lim=1, sub=0))
 }
 
-BNFinderI5 <- function(data, k = 0){
-  return(BNFinder(data, lim=0, sub=5, k=k))
+BNFinderI5 <- function(data){
+  return(BNFinder(data, lim=0, sub=5))
 }
 
-BNFinderI10 <- function(data, k = 0){
-  return(BNFinder(data, lim=0, sub=10, k=k))
+BNFinderI10 <- function(data){
+  return(BNFinder(data, lim=0, sub=10))
 }
 
-BNFinderI20 <- function(data, k = 0){
-  return(BNFinder(data, lim=0, sub=20, k=k))
+BNFinderI20 <- function(data){
+  return(BNFinder(data, lim=0, sub=20))
 }
 
-BNFinderI30 <- function(data, k = 0){
-  return(BNFinder(data, lim=0, sub=30, k=k))
+BNFinderI30 <- function(data){
+  return(BNFinder(data, lim=0, sub=30))
 }
 
-BNFinderL3I30 <- function(data, k = 0){
-  return(BNFinder(data, lim=3, sub=30, k=k))
+BNFinderL3I30 <- function(data){
+  return(BNFinder(data, lim=3, sub=30))
 }
 
-BNFinderL3I20 <- function(data, k = 0){
-  return(BNFinder(data, lim=3, sub=20, k=k))
+BNFinderL3I20 <- function(data){
+  return(BNFinder(data, lim=3, sub=20))
 }
 
-BNFinderL3I10 <- function(data, k = 0){
-  return(BNFinder(data, lim=3, sub=10, k=k))
+BNFinderL3I10 <- function(data){
+  return(BNFinder(data, lim=3, sub=10))
 }
 
-BNFinderL3I5 <- function(data, k = 0){
-  return(BNFinder(data, lim=3, sub=5, k=k))
+BNFinderL3I5 <- function(data){
+  return(BNFinder(data, lim=3, sub=5))
 }
 
-BNFinderL2I30 <- function(data, k = 0){
-  return(BNFinder(data, lim=2, sub=30, k=k))
+BNFinderL2I30 <- function(data){
+  return(BNFinder(data, lim=2, sub=30))
 }
 
-BNFinderL2I20 <- function(data, k = 0){
-  return(BNFinder(data, lim=2, sub=20, k=k))
+BNFinderL2I20 <- function(data){
+  return(BNFinder(data, lim=2, sub=20))
 }
 
-BNFinderL2I10 <- function(data, k = 0){
-  return(BNFinder(data, lim=2, sub=10, k=k))
+BNFinderL2I10 <- function(data){
+  return(BNFinder(data, lim=2, sub=10))
 }
 
-BNFinderL2I5 <- function(data, k = 0){
-  return(BNFinder(data, lim=2, sub=5, k=k))
+BNFinderL2I5 <- function(data){
+  return(BNFinder(data, lim=2, sub=5))
 }
 
-BNFinderL1I30 <- function(data, k = 0){
-  return(BNFinder(data, lim=1, sub=30, k=k))
+BNFinderL1I30 <- function(data){
+  return(BNFinder(data, lim=1, sub=30))
 }
 
-BNFinderL1I20 <- function(data, k = 0){
-  return(BNFinder(data, lim=1, sub=20, k=k))
+BNFinderL1I20 <- function(data){
+  return(BNFinder(data, lim=1, sub=20))
 }
 
-BNFinderL1I10 <- function(data, k = 0){
-  return(BNFinder(data, lim=1, sub=10, k=k))
+BNFinderL1I10 <- function(data){
+  return(BNFinder(data, lim=1, sub=10))
 }
 
-BNFinderL1I5 <- function(data, k = 0){
-  return(BNFinder(data, lim=1, sub=5, k=k))
+BNFinderL1I5 <- function(data){
+  return(BNFinder(data, lim=1, sub=5))
 }
 
 
@@ -165,10 +168,10 @@ benchmark <- function(data, true.net, methods, sym=TRUE, no.top=50) {
       
   result <- rbind(auroc[[1]], aupr[[1]], tp[[1]])
   cpu <- rbind(auroc[[2]], aupr[[2]], tp[[2]])
-  cpu <- as.data.frame(t(colMeans(cpu)))
-  cpu$rand = 0
+  #cpu <- as.data.frame(t(colMeans(cpu)))
+  cpu$rand <- 0
   result <- rbind(result, cpu)
-  rownames(result) <- c("AUROC", "AUPR", "TP", "Time")
+  rownames(result) <- c("AUROC", "AUPR", "TP", "TimeRep1", "TimeRep2", "TimeRep3")
   return(result)
 }
 
@@ -186,12 +189,13 @@ methods <- c("ScanBMA", "aracne.wrap","c3net.wrap","clr.wrap",
              "BNFinderL2I30", "BNFinderL2I20", "BNFinderL2I10", "BNFinderL2I5",
              "BNFinderL1I30", "BNFinderL1I20", "BNFinderL1I10", "BNFinderL1I5")
 
-#methods <- c("clr.wrap", "ScanBMA")
+methods <- c("ScanBMA", "BNFinder")
 #methods <- c("GeneNet.wrap")
 
 dream.bench <- function(data, gold, methods, sym=TRUE, no.top=50) {
   results <- c()
-  for (network in 2:2) {
+  for (network in 1:length(data)) {
+    print(paste("Processing network", network))
     dat <- data[[network]][, -c(1:2)]
     true.net <- gold[[network]]
     true.net <- graph.data.frame(true.net)
@@ -201,9 +205,13 @@ dream.bench <- function(data, gold, methods, sym=TRUE, no.top=50) {
     results <- c(results, list(result)) 
   }
   
+  save(results, file = paste("top", no.top, sym, ".Rdata", sep=""))
   arr <- abind(results, along=3)
   average <- rowMeans(arr, dims = 2)
-  
+  average <- as.data.frame(t(average))
+  Time <- rowMeans(average[,c("TimeRep1", "TimeRep2", "TimeRep3")])
+  average <- cbind(average, Time)
+  average <- average[,-which(colnames(average) %in% c("TimeRep1", "TimeRep2", "TimeRep3"))]  
   return(average)    
 }
  
@@ -211,24 +219,23 @@ data = dream4ts10
 gold = dream4gold10
 
 result <- dream.bench(data, gold, methods, no.top=20, sym=FALSE)
-write.table(t(result), "top20.txt", sep="\t", quote=FALSE)
+write.table(result, "top20.txt", sep="\t", quote=FALSE)
 result <- dream.bench(data, gold, methods, no.top=50, sym=FALSE)
-write.table(t(result), "top50.txt", sep="\t", quote=FALSE)
+write.table(result, "top50.txt", sep="\t", quote=FALSE)
 result <- dream.bench(data, gold, methods, no.top=80, sym=FALSE)
-write.table(t(result), "top80.txt", sep="\t", quote=FALSE)
+write.table(result, "top80.txt", sep="\t", quote=FALSE)
 result <- dream.bench(data, gold, methods, no.top=100, sym=FALSE)
-write.table(t(result), "top100.txt", sep="\t", quote=FALSE)
+write.table(result, "top100.txt", sep="\t", quote=FALSE)
 
 
 result <- dream.bench(data, gold, methods, no.top=20, sym=TRUE)
-write.table(t(result), "top20sym.txt", sep="\t", quote=FALSE)
+write.table(result, "top20sym.txt", sep="\t", quote=FALSE)
 result <- dream.bench(data, gold, methods, no.top=50, sym=TRUE)
-write.table(t(result), "top50sym.txt", sep="\t", quote=FALSE)
+write.table(result, "top50sym.txt", sep="\t", quote=FALSE)
 result <- dream.bench(data, gold, methods, no.top=80, sym=TRUE)
-write.table(t(result), "top80sym.txt", sep="\t", quote=FALSE)
+write.table(result, "top80sym.txt", sep="\t", quote=FALSE)
 result <- dream.bench(data, gold, methods, no.top=100, sym=TRUE)
-write.table(t(result), "top100sym.txt", sep="\t", quote=FALSE)
-
+write.table(result, "top100sym.txt", sep="\t", quote=FALSE)
 
 
 #View(result)
