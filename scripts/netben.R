@@ -16,8 +16,9 @@ data(vignette)
 
 
 # Define a wrapper function
-ScanBMA <- function(data){
+ScanBMA <- function(data, threshold=0){
   edges <- networkBMA(data = data, nTimePoints = nrow(data))
+  edges[which(edges$PostProb<threshold),]$PostProb <- 0
   g <- graph.data.frame(edges)
   adj <- get.adjacency(g, attr='PostProb',sparse=FALSE)
   return(adj[colnames(data),colnames(data)])
@@ -220,23 +221,8 @@ gold = dream4gold10
 
 result <- dream.bench(data, gold, methods, no.top=20, sym=FALSE)
 write.table(result, "top20.txt", sep="\t", quote=FALSE)
-result <- dream.bench(data, gold, methods, no.top=50, sym=FALSE)
-write.table(result, "top50.txt", sep="\t", quote=FALSE)
-result <- dream.bench(data, gold, methods, no.top=80, sym=FALSE)
-write.table(result, "top80.txt", sep="\t", quote=FALSE)
-result <- dream.bench(data, gold, methods, no.top=100, sym=FALSE)
-write.table(result, "top100.txt", sep="\t", quote=FALSE)
 
-
-result <- dream.bench(data, gold, methods, no.top=20, sym=TRUE)
-write.table(result, "top20sym.txt", sep="\t", quote=FALSE)
-result <- dream.bench(data, gold, methods, no.top=50, sym=TRUE)
-write.table(result, "top50sym.txt", sep="\t", quote=FALSE)
-result <- dream.bench(data, gold, methods, no.top=80, sym=TRUE)
-write.table(result, "top80sym.txt", sep="\t", quote=FALSE)
-result <- dream.bench(data, gold, methods, no.top=100, sym=TRUE)
-write.table(result, "top100sym.txt", sep="\t", quote=FALSE)
-
+#result <- dream.bench(data, gold, methods, no.top=20, sym=TRUE)
+#write.table(result, "top20sym.txt", sep="\t", quote=FALSE)
 
 #View(result)
-
