@@ -6,7 +6,6 @@ library(abind)
 data(dream4)
 data(vignette)
 
-
 # Read Yeast TFs
 #Yeast.TFs <- read.table("../data/RegulationTwoColumnTable_Documented_2013927.tsv",
 #                        check.names = FALSE, header=FALSE, sep=";", quote="")
@@ -17,15 +16,32 @@ data(vignette)
 
 # Define a wrapper function
 ScanBMA <- function(data, threshold=0){
-  edges <- networkBMA(data = data, nTimePoints = nrow(data))
-  edges[which(edges$PostProb<threshold),]$PostProb <- 0
+  #edges <- networkBMA(data = data, nTimePoints = nrow(data))
+  
+  edges <- networkBMA(data = data, nTimePoints = nrow(data),
+                      control=fastBMAcontrol(fastgCtrl=fastgControl(optimize=4)))
+
   g <- graph.data.frame(edges)
   adj <- get.adjacency(g, attr='PostProb',sparse=FALSE)
-  return(adj[colnames(data),colnames(data)])
+
+  if (length(colnames(data)) > length(colnames(adj))) {
+    missing <- colnames(data)[(!(colnames(data) %in% colnames(adj)))]
+    adj <- as.data.frame(adj)
+    adj[, missing] <- 0
+    adj[missing, ] <- 0
+    adj <- as.matrix(adj)
+  }
+  
+  adj <- adj[colnames(data),colnames(data)]
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
+  return(adj)
 }
 
 # Define a wrapper function
-BNFinder <- function(data, lim=0, sub=0, k=10){
+BNFinder <- function(data, lim=0, sub=0, k=10, threshold=0){
   path <- ""
   dat_name <- "input.txt"
   write.table(t(data), paste(path, dat_name, sep=""), sep="\t", quote=FALSE)
@@ -62,8 +78,11 @@ BNFinder <- function(data, lim=0, sub=0, k=10){
     adj[missing, ] <- 0
     adj <- as.matrix(adj)
   }
-  
-  return(adj[colnames(data),colnames(data)])
+
+  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj/max(adj)
+  adj[adj < threshold] <- 0
+  return(adj)
 }
 
 BNFinderL3 <- function(data){
@@ -142,24 +161,95 @@ BNFinderL1I5 <- function(data){
   return(BNFinder(data, lim=1, sub=5))
 }
 
+aracne.cwrap <- function(data, threshold=0) {
+  adj <- aracne.wrap(data)
+  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj/max(adj)
+  adj[adj < threshold] <- 0
+  return(adj)
+}
+
+c3net.cwrap <- function(data, threshold=0) {
+  adj <- c3net.wrap(data)
+  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj/max(adj)
+  adj[adj < threshold] <- 0
+  return(adj)
+}
+
+clr.cwrap <- function(data, threshold=0) {
+  adj <- clr.wrap(data)
+  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj/max(adj)
+  adj[adj < threshold] <- 0
+  return(adj)
+}
+
+Genie3.cwrap <- function(data, threshold=0) {
+  adj <- Genie3.wrap(data)
+  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj/max(adj)
+  adj[adj < threshold] <- 0
+  return(adj)
+}
+
+mrnet.cwrap <- function(data, threshold=0) {
+  adj <- mrnet.wrap(data)
+  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj/max(adj)
+  adj[adj < threshold] <- 0
+  return(adj)
+}
+
+mutrank.cwrap <- function(data, threshold=0) {
+  adj <- mutrank.wrap(data)
+  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj/max(adj)
+  adj[adj < threshold] <- 0
+  return(adj)
+}
+
+mrnetb.cwrap <- function(data, threshold=0) {
+  adj <- mrnetb.wrap(data)
+  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj/max(adj)
+  adj[adj < threshold] <- 0
+  return(adj)
+}
+
+pcit.cwrap <- function(data, threshold=0) {
+  adj <- pcit.wrap(data)
+  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj/max(adj)
+  adj[adj < threshold] <- 0
+  return(adj)
+}
 
 # Register it to all.fast methods
-RegisterWrapper(c("ScanBMA", "BNFinder",
+RegisterWrapper(c("ScanBMA",
+                  "aracne.cwrap","c3net.cwrap","clr.cwrap",
+                  "Genie3.cwrap","mrnet.cwrap",
+                  "mutrank.cwrap","mrnetb.cwrap","pcit.cwrap",
+                  "BNFinder",
                   "BNFinderL3", "BNFinderL2", "BNFinderL1",
                   "BNFinderI30", "BNFinderI20", "BNFinderI10", "BNFinderI5",
                   "BNFinderL3I30", "BNFinderL3I20", "BNFinderL3I10", "BNFinderL3I5",
                   "BNFinderL2I30", "BNFinderL2I20", "BNFinderL2I10", "BNFinderL2I5",
                   "BNFinderL1I30", "BNFinderL1I20", "BNFinderL1I10", "BNFinderL1I5"))
                   # Register it to all methods
-RegisterWrapper(c("ScanBMA", "BNFinder",
+RegisterWrapper(c("ScanBMA",
+                  "aracne.cwrap","c3net.cwrap","clr.cwrap",
+                  "Genie3.cwrap","mrnet.cwrap",
+                  "mutrank.cwrap","mrnetb.cwrap","pcit.cwrap",
+                  "BNFinder",
                   "BNFinderL3", "BNFinderL2", "BNFinderL1",
                   "BNFinderI30", "BNFinderI20", "BNFinderI10", "BNFinderI5",
                   "BNFinderL3I30", "BNFinderL3I20", "BNFinderL3I10", "BNFinderL3I5",
                   "BNFinderL2I30", "BNFinderL2I20", "BNFinderL2I10", "BNFinderL2I5",
                   "BNFinderL1I30", "BNFinderL1I20", "BNFinderL1I10", "BNFinderL1I5"),
-                all.fast=FALSE)
+                  all.fast=FALSE)
 
-benchmark <- function(data, true.net, methods, sym=TRUE, no.top=50) {
+benchmark <- function(data, true.net, methods, sym=TRUE, no.top=20) {
   auroc <- netbenchmark.data(data=data, eval="AUROC", methods=methods, sym = sym,
                              no.topedges = no.top, true.net = true.net)
   aupr <- netbenchmark.data(data=data, methods=methods, sym = sym,
@@ -176,22 +266,17 @@ benchmark <- function(data, true.net, methods, sym=TRUE, no.top=50) {
   return(result)
 }
 
-methods <- c("ScanBMA", "BNFinder", "aracne.wrap","c3net.wrap","clr.wrap",
-                 "Genie3.wrap","mrnet.wrap",
-                 "mutrank.wrap","mrnetb.wrap","pcit.wrap")
-    
-methods <- c("ScanBMA", "aracne.wrap","c3net.wrap","clr.wrap",
-             "Genie3.wrap","mrnet.wrap",
-             "mutrank.wrap","mrnetb.wrap","pcit.wrap",
-	     "BNFinder",
+methods <- c("ScanBMA", "aracne.cwrap","c3net.cwrap","clr.cwrap",
+             "Genie3.cwrap","mrnet.cwrap",
+             "mutrank.cwrap","mrnetb.cwrap","pcit.cwrap",
+             "BNFinder",
              "BNFinderL3", "BNFinderL2", "BNFinderL1",
              "BNFinderI30", "BNFinderI20", "BNFinderI10", "BNFinderI5",
-	     "BNFinderL3I30", "BNFinderL3I20", "BNFinderL3I10", "BNFinderL3I5",
+             "BNFinderL3I30", "BNFinderL3I20", "BNFinderL3I10", "BNFinderL3I5",
              "BNFinderL2I30", "BNFinderL2I20", "BNFinderL2I10", "BNFinderL2I5",
              "BNFinderL1I30", "BNFinderL1I20", "BNFinderL1I10", "BNFinderL1I5")
 
-methods <- c("ScanBMA", "BNFinder")
-#methods <- c("GeneNet.wrap")
+#methods <- c("ScanBMA", "BNFinder")
 
 dream.bench <- function(data, gold, methods, sym=TRUE, no.top=50) {
   results <- c()
@@ -222,7 +307,5 @@ gold = dream4gold10
 result <- dream.bench(data, gold, methods, no.top=20, sym=FALSE)
 write.table(result, "top20.txt", sep="\t", quote=FALSE)
 
-#result <- dream.bench(data, gold, methods, no.top=20, sym=TRUE)
-#write.table(result, "top20sym.txt", sep="\t", quote=FALSE)
-
-#View(result)
+result <- dream.bench(data, gold, methods, no.top=20, sym=TRUE)
+write.table(result, "top20sym.txt", sep="\t", quote=FALSE)
