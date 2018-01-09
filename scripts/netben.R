@@ -13,14 +13,36 @@ data(vignette)
 #gene_to_ORF <- select(org.Sc.sgd.db, keys=Yeast.TFs, columns = c("ORF"),
 #                      keytype="COMMON")
 
+# Define a wrapper function
+FastBMA <- function(data, threshold=0){
+  edges <- networkBMA(data = data, nTimePoints = nrow(data),
+                      control=fastBMAcontrol(fastgCtrl=fastgControl(optimize=4)))
+  
+  g <- graph.data.frame(edges)
+  adj <- get.adjacency(g, attr='PostProb',sparse=FALSE)
+  
+  if (length(colnames(data)) > length(colnames(adj))) {
+    missing <- colnames(data)[(!(colnames(data) %in% colnames(adj)))]
+    adj <- as.data.frame(adj)
+    adj[, missing] <- 0
+    adj[missing, ] <- 0
+    adj <- as.matrix(adj)
+  }
+  
+  adj <- adj[colnames(data),colnames(data)]
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
+  return(adj)
+}
+
+
 
 # Define a wrapper function
 ScanBMA <- function(data, threshold=0){
-  #edges <- networkBMA(data = data, nTimePoints = nrow(data))
+  edges <- networkBMA(data = data, nTimePoints = nrow(data))
   
-  edges <- networkBMA(data = data, nTimePoints = nrow(data),
-                      control=fastBMAcontrol(fastgCtrl=fastgControl(optimize=4)))
-
   g <- graph.data.frame(edges)
   adj <- get.adjacency(g, attr='PostProb',sparse=FALSE)
 
@@ -80,8 +102,6 @@ BNFinder <- function(data, lim=0, sub=0, k=10, threshold=0){
   }
 
   adj <- adj[colnames(data),colnames(data)]
-  adj <- adj/max(adj)
-  adj[adj < threshold] <- 0
   return(adj)
 }
 
@@ -164,69 +184,85 @@ BNFinderL1I5 <- function(data){
 aracne.cwrap <- function(data, threshold=0) {
   adj <- aracne.wrap(data)
   adj <- adj[colnames(data),colnames(data)]
-  adj <- adj/max(adj)
-  adj[adj < threshold] <- 0
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
   return(adj)
 }
 
 c3net.cwrap <- function(data, threshold=0) {
   adj <- c3net.wrap(data)
   adj <- adj[colnames(data),colnames(data)]
-  adj <- adj/max(adj)
-  adj[adj < threshold] <- 0
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
   return(adj)
 }
 
 clr.cwrap <- function(data, threshold=0) {
   adj <- clr.wrap(data)
   adj <- adj[colnames(data),colnames(data)]
-  adj <- adj/max(adj)
-  adj[adj < threshold] <- 0
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
   return(adj)
 }
 
 Genie3.cwrap <- function(data, threshold=0) {
   adj <- Genie3.wrap(data)
   adj <- adj[colnames(data),colnames(data)]
-  adj <- adj/max(adj)
-  adj[adj < threshold] <- 0
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
   return(adj)
 }
 
 mrnet.cwrap <- function(data, threshold=0) {
   adj <- mrnet.wrap(data)
   adj <- adj[colnames(data),colnames(data)]
-  adj <- adj/max(adj)
-  adj[adj < threshold] <- 0
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
   return(adj)
 }
 
 mutrank.cwrap <- function(data, threshold=0) {
   adj <- mutrank.wrap(data)
   adj <- adj[colnames(data),colnames(data)]
-  adj <- adj/max(adj)
-  adj[adj < threshold] <- 0
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
   return(adj)
 }
 
 mrnetb.cwrap <- function(data, threshold=0) {
   adj <- mrnetb.wrap(data)
   adj <- adj[colnames(data),colnames(data)]
-  adj <- adj/max(adj)
-  adj[adj < threshold] <- 0
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
   return(adj)
 }
 
 pcit.cwrap <- function(data, threshold=0) {
   adj <- pcit.wrap(data)
   adj <- adj[colnames(data),colnames(data)]
-  adj <- adj/max(adj)
-  adj[adj < threshold] <- 0
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
   return(adj)
 }
 
 # Register it to all.fast methods
-RegisterWrapper(c("ScanBMA",
+RegisterWrapper(c("ScanBMA", "FastBMA",
                   "aracne.cwrap","c3net.cwrap","clr.cwrap",
                   "Genie3.cwrap","mrnet.cwrap",
                   "mutrank.cwrap","mrnetb.cwrap","pcit.cwrap",
@@ -237,7 +273,7 @@ RegisterWrapper(c("ScanBMA",
                   "BNFinderL2I30", "BNFinderL2I20", "BNFinderL2I10", "BNFinderL2I5",
                   "BNFinderL1I30", "BNFinderL1I20", "BNFinderL1I10", "BNFinderL1I5"))
                   # Register it to all methods
-RegisterWrapper(c("ScanBMA",
+RegisterWrapper(c("ScanBMA", "FastBMA",
                   "aracne.cwrap","c3net.cwrap","clr.cwrap",
                   "Genie3.cwrap","mrnet.cwrap",
                   "mutrank.cwrap","mrnetb.cwrap","pcit.cwrap",
@@ -266,7 +302,8 @@ benchmark <- function(data, true.net, methods, sym=TRUE, no.top=20) {
   return(result)
 }
 
-methods <- c("ScanBMA", "aracne.cwrap","c3net.cwrap","clr.cwrap",
+methods <- c("ScanBMA", "FastBMA",
+             "aracne.cwrap","c3net.cwrap","clr.cwrap",
              "Genie3.cwrap","mrnet.cwrap",
              "mutrank.cwrap","mrnetb.cwrap","pcit.cwrap",
              "BNFinder",
