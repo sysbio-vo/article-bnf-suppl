@@ -102,6 +102,10 @@ BNFinder <- function(data, lim=0, sub=0, k=10, threshold=0){
   }
 
   adj <- adj[colnames(data),colnames(data)]
+  if (threshold > 0) {
+    adj <- adj/max(adj)
+    adj[adj < threshold] <- 0
+  }
   return(adj)
 }
 
@@ -285,7 +289,7 @@ RegisterWrapper(c("ScanBMA", "FastBMA",
                   "BNFinderL1I30", "BNFinderL1I20", "BNFinderL1I10", "BNFinderL1I5"),
                   all.fast=FALSE)
 
-benchmark <- function(data, true.net, methods, sym=TRUE, no.top=20) {
+benchmark <- function(data, true.net, methods, sym=TRUE, no.top) {
   auroc <- netbenchmark.data(data=data, eval="AUROC", methods=methods, sym = sym,
                              no.topedges = no.top, true.net = true.net)
   aupr <- netbenchmark.data(data=data, methods=methods, sym = sym,
@@ -315,7 +319,7 @@ methods <- c("ScanBMA", "FastBMA",
 
 #methods <- c("ScanBMA", "BNFinder")
 
-dream.bench <- function(data, gold, methods, sym=TRUE, no.top=50) {
+dream.bench <- function(data, gold, methods, sym=TRUE, no.top) {
   results <- c()
   for (network in 1:length(data)) {
     print(paste("Processing network", network))
