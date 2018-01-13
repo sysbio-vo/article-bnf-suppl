@@ -1,2 +1,5 @@
-data/
+bnf_in/*.in
+bnf_out/*.out
 bnfinder/
+netbenchmark/
+*.Rhistory
