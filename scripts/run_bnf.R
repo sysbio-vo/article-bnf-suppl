@@ -143,25 +143,50 @@ if (BREM) {
 }
 
 ## Time Series Yeast
+YeastTS = FALSE
+if (YeastTS) {
+  
+  data = timeSeries[, -c(1:2)]
+  gold = referencePairs
+  data.name = "YeastTS"
 
-data = timeSeries[, -c(1:2)]
-gold = referencePairs
-data.name = "YeastTS"
+  results <- c()
+  
+  params <- data.frame(lim=c(1),
+                       sub = c(2))
+  
+  for (i in 1:nrow(params)) {
+    result <- BNFinder(data, data.name, priors=edges,
+                       lim=params[i,1], sub=params[i,2], k=1, path=path)
+    
+    results <- c(results, list(list(network=data.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
+                                    time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
+  }
+
+}
+
+## gnw2000, Yeast multifactorial
+
+data = gnw2000.data
+data = gnw2000.data[sample(1:ncol(gnw2000.data), 150), ]
+gold = gnw2000.net
+data.name = "gnw2000"
+regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
+priors <- edges[which(edges$Regulator %in% colnames(data)),]
+priors <- priors[which(priors$TargetGene %in% colnames(data)),]
 
 results <- c()
 
-params <- data.frame(lim=c(1),
-                     sub = c(2))
+params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2),
+                     sub = c(0, 5, 10, 20, 30, 0, 5, 10, 20, 30))
 
 for (i in 1:nrow(params)) {
-  result <- BNFinder(data, data.name, priors=edges,
+  result <- BNFinder(data, data.name, regulators=regs, priors=priors,
                      lim=params[i,1], sub=params[i,2], k=1, path=path)
   
   results <- c(results, list(list(network=data.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
                                   time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
 }
-
-
 
 ########
 save(results, file=paste(data.name, "_results.RData", sep=""))
