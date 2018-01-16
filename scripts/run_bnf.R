@@ -73,7 +73,7 @@ path = paste(getwd(), "/../bnfinder/", sep="")
 
 ### Dream4 10 and 100 TS
 
-DREAM == FALSE
+DREAM = FALSE
 
 if (DREAM) {
 
@@ -117,24 +117,51 @@ known$prob <- 0.2
 colnames(edges) <- colnames(known)
 edges <- rbind(edges, known)
 
-## Brem
-data = t(brem.data)
-gold = referencePairs
-data.name = "brem"
 
-regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
+## Brem
+
+BREM=FALSE
+if (BREM) {
+  data = t(brem.data)
+  gold = referencePairs
+  data.name = "brem"
+  
+  regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
+  results <- c()
+  
+  params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3),
+                       sub = c(0, 5, 10, 20, 30, 0, 5, 10, 20, 30, 0, 5, 10, 20, 30))
+  
+  for (i in 1:nrow(params)) {
+    result <- BNFinder(data, data.name, regulators=regs, priors=edges,
+                      lim=params[i,1], sub=params[i,2], k=1, path=path)
+  
+    results <- c(results, list(list(network=data.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
+                                    time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
+  }
+
+}
+
+## Time Series Yeast
+
+data = timeSeries[, -c(1:2)]
+gold = referencePairs
+data.name = "YeastTS"
+
 results <- c()
 
-params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3),
-                     sub = c(0, 5, 10, 20, 30, 0, 5, 10, 20, 30, 0, 5, 10, 20, 30))
+params <- data.frame(lim=c(1),
+                     sub = c(2))
 
 for (i in 1:nrow(params)) {
-  result <- BNFinder(data, data.name, regulators=regs, priors=edges,
-                    lim=params[i,1], sub=params[i,2], k=1, path=path)
-
+  result <- BNFinder(data, data.name, priors=edges,
+                     lim=params[i,1], sub=params[i,2], k=1, path=path)
+  
   results <- c(results, list(list(network=data.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
                                   time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
 }
+
+
 
 ########
 save(results, file=paste(data.name, "_results.RData", sep=""))
