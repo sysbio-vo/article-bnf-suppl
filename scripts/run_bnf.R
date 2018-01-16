@@ -12,6 +12,16 @@ BNFinder <- function(data, data.name, regulators=NULL, priors=NULL, lim=0, sub=0
   in.name <- paste(getwd(), "/../bnf_in/", data.name, ".in", sep="")
   write.table(t(data), in.name, sep="\t", quote=FALSE)
 
+  if (!is.null(priors)) {
+    priors$pe <- "#prioredge"
+    priors <- priors[,c(4, 2, 3, 1)]
+    p <- apply(priors, 1, function(x) {paste(x, collapse=" ")})
+    fConn <- file(in.name, 'r+')
+    Lines <- readLines(fConn) 
+    writeLines(c(p, Lines), con = fConn) 
+    close(fConn)
+  }
+  
   if (!is.null(regulators)) {
     fConn <- file(in.name, 'r+')
     Lines <- readLines(fConn) 
@@ -20,9 +30,6 @@ BNFinder <- function(data, data.name, regulators=NULL, priors=NULL, lim=0, sub=0
     close(fConn)
   }
 
-  if (!is.null(priors)) {
-  }
-  
   cores = ""
   if (k!=0) {
     cores = paste(" -k ", k, sep="")
@@ -59,22 +66,40 @@ BNFinder <- function(data, data.name, regulators=NULL, priors=NULL, lim=0, sub=0
   return(list(time, res))
 }
 
-EdgeToAdj <- function(edgeList, colnames, attr) {
-  g <- graph.data.frame(edgeList)
-  adj <- get.adjacency(g, attr=attr,sparse=FALSE)
-  if (length(colnames) > length(colnames(adj))) {
-    missing <- colnames[(!(colnames %in% colnames(adj)))]
-    adj <- as.data.frame(adj)
-    adj[, missing] <- 0
-    adj[missing, ] <- 0
-    adj <- as.matrix(adj)
-  }
-  
-  adj <- adj[colnames,colnames]
-  return(adj)
+params <- data.frame(lim=c(0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3),
+                     sub = c(0, 5, 10, 20, 30, 40, 0, 5, 10, 20, 30, 40, 0, 5, 10, 20, 30, 40, 0, 5, 10, 20, 30, 40))
+
+path = paste(getwd(), "/../bnfinder/", sep="")
+
+### Dream4 10 and 100 TS
+
+DREAM == FALSE
+
+if (DREAM) {
+
+  data = dream4ts10
+  gold = dream4gold10
+  data.name = "dream4ts10"
+
+  results <- c()
+  nn <- length(data)
+  for (network in 1:nn) {
+    print(paste("Processing network", network))
+    dat <- data[[network]][, -c(1:2)]
+    for (i in 1:nrow(params)) {
+      net.name <- paste(data.name, "n", network, sep="")
+      result <- BNFinder(dat, net.name, lim=params[i, 1], sub=params[i, 2], k=2, path=path)
+      results <- c(results,
+                   list(list(network=net.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
+                             time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
+    }
+  }  
+
 }
 
-## Yeast
+
+### Yeast
+
 # Read Yeast TFs
 Yeast.TFs <- read.table("../data/RegulationTwoColumnTable_Documented_2013927.tsv",
                         check.names = FALSE, header=FALSE, sep=";", quote="")
@@ -82,63 +107,35 @@ Yeast.TFs <- levels(unique(Yeast.TFs[,1]))
 gene_to_ORF <- select(org.Sc.sgd.db, keys=Yeast.TFs, columns = c("ORF"),
                       keytype="COMMON")
 
-regs <- colnames(gnw2000.data)[which(colnames(gnw2000.data) %in% gene_to_ORF$ORF)]
+# Priors
+g <- graph.adjacency(1-reg.prob, weighted=TRUE, mode="directed")
+edges <- as.data.frame(get.edgelist(g))
+edges$weight <- E(g)$weight
+edges <- edges[which(edges$weight<0.9),]
+known <- reg.known[, c(1, 2)]
+known$prob <- 0.2
+colnames(edges) <- colnames(known)
+edges <- rbind(edges, known)
 
+## Brem
+data = t(brem.data)
+gold = referencePairs
+data.name = "brem"
 
-## Dream4 TS
-
-params <- data.frame(lim=c(0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3),
-                     sub = c(0, 5, 10, 20, 30, 30, 0, 5, 10, 20, 30, 40, 0, 5, 10, 20, 30, 40, 0, 5, 10, 20, 30, 40))
-
-data = dream4ts10
-gold = dream4gold10
-data.name = "dream4ts10"
-path = paste(getwd(), "/../bnfinder/", sep="")
-
+regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
 results <- c()
-nn <- length(data)
-for (network in 1:nn) {
-  print(paste("Processing network", network))
-  dat <- data[[network]][, -c(1:2)]
-  for (i in 1:nrow(params)) {
-    net.name <- paste(data.name, "n", network, sep="")
-    result <- BNFinder(dat, net.name, lim=params[i, 1], sub=params[i, 2], k=2, path=path)
-    results <- c(results,
-                 list(list(network=net.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
-                           time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
-  }
-}  
 
-save(results, file=paste(data.name, "_results.RData", sep=""))
+params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3),
+                     sub = c(0, 5, 10, 20, 30, 0, 5, 10, 20, 30, 0, 5, 10, 20, 30))
 
-eval = FALSE 
+for (i in 1:nrow(params)) {
+  result <- BNFinder(data, data.name, regulators=regs, priors=edges,
+                    lim=params[i,1], sub=params[i,2], k=1, path=path)
 
-if (eval) {
-  for (network in 1:nn) {
-    for (i in 1:nrow(params)) {
-      results[[network*i]]$inf.net$Weight <- as.numeric(results[[network*i]]$inf.net$Weight)
-      nGenes <- ncol(data[[network]][, -c(1:2)])
-      nPossibleEdges <- round((nGenes^2 - nGenes)*0.2)
-      #nPossibleEdges = nGenes^2 - nGenes
-      #print(nPossibleEdges)
-      
-      
-      print("Minet package")
-      e <- minet::validate(EdgeToAdj(results[[network*i]]$inf.net, colnames(data[[network]][, -c(1:2)]), attr="Weight"),
-                           EdgeToAdj(gold[[network]], colnames(data[[network]][, -c(1:2)]), attr="edge"))
-      
-      print(auc.roc(e))
-      print(auc.pr(e))
-      #print(max(fscores(e)))
-  
-      print("NetBenchmark package")
-      e <- evaluate(EdgeToAdj(results[[network*i]]$inf.net, colnames(data[[network]][, -c(1:2)]), attr="Weight"),
-                    EdgeToAdj(gold[[network]], colnames(data[[network]][, -c(1:2)]), attr="edge"),
-                    sym=FALSE, extend=nPossibleEdges)
-      print(e)
-      print(auroc(e, nPossibleEdges))
-      print(aupr(e, nPossibleEdges))
-    }
-  }
+  results <- c(results, list(list(network=data.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
+                                  time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
 }
+
+########
+save(results, file=paste(data.name, "_results.RData", sep=""))
 
