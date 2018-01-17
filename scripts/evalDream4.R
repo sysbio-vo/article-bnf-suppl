@@ -45,7 +45,7 @@ eval_minet <- function(inf, gold, sym) {
   if (sym==FALSE) {
     e <- validate(inf, gold)
   } else {
-    if (!isSymmetrix(gold)) {
+    if (!isSymmetric(gold)) {
       gold <- pmax(gold,t(gold))
     }
     e <- validate(inf, gold)
