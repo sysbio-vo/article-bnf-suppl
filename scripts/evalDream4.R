@@ -136,7 +136,7 @@ for (i in 1:length(data)) {
     print(method)
     start_time <- Sys.time()
     if (method=="FastBMA") {
-      inf <- do.call(functions[j], list(d, nTimePoints, priors = reg.prob, known = NULL))
+      inf <- do.call(functions[j], list(d, nTimePoints))
     } else {
       inf <- do.call(functions[j], list(d))
     }
