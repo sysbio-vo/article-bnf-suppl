@@ -111,9 +111,9 @@ gene_to_ORF <- select(org.Sc.sgd.db, keys=Yeast.TFs, columns = c("ORF"),
 g <- graph.adjacency(1-reg.prob, weighted=TRUE, mode="directed")
 edges <- as.data.frame(get.edgelist(g))
 edges$weight <- E(g)$weight
-edges <- edges[which(edges$weight<0.9),]
+#edges <- edges[which(edges$weight<0.9),]
 known <- reg.known[, c(1, 2)]
-known$prob <- 0.2
+known$prob <- 0.03
 colnames(edges) <- colnames(known)
 edges <- rbind(edges, known)
 
@@ -121,6 +121,7 @@ edges <- rbind(edges, known)
 ## Brem
 
 BREM=FALSE
+
 if (BREM) {
   data = t(brem.data)
   gold = referencePairs
@@ -129,8 +130,8 @@ if (BREM) {
   regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
   results <- c()
   
-  params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3),
-                       sub = c(0, 5, 10, 20, 30, 0, 5, 10, 20, 30, 0, 5, 10, 20, 30))
+  params <- data.frame(lim=c(0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3),
+                       sub = c(0, 5, 10, 20, 30, 40, 0, 5, 10, 20, 30, 40, 0, 5, 10, 20, 30, 40, 0, 5, 10, 20, 30, 40))
   
   for (i in 1:nrow(params)) {
     result <- BNFinder(data, data.name, regulators=regs, priors=edges,
@@ -166,28 +167,31 @@ if (YeastTS) {
 }
 
 ## gnw2000, Yeast multifactorial
+GNW2000 = FALSE
+if (GNW2000) {
 
-data = gnw2000.data
-data = gnw2000.data[sample(1:ncol(gnw2000.data), 150), ]
-gold = gnw2000.net
-data.name = "gnw2000"
-regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
-priors <- edges[which(edges$Regulator %in% colnames(data)),]
-priors <- priors[which(priors$TargetGene %in% colnames(data)),]
-
-results <- c()
-
-params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2),
-                     sub = c(0, 5, 10, 20, 30, 0, 5, 10, 20, 30))
-
-for (i in 1:nrow(params)) {
-  result <- BNFinder(data, data.name, regulators=regs, priors=priors,
-                     lim=params[i,1], sub=params[i,2], k=1, path=path)
+  data = gnw2000.data
+  data = gnw2000.data[sample(1:ncol(gnw2000.data), 150), ]
+  gold = gnw2000.net
+  data.name = "gnw2000"
+  regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
+  priors <- edges[which(edges$Regulator %in% colnames(data)),]
+  priors <- priors[which(priors$TargetGene %in% colnames(data)),]
   
-  results <- c(results, list(list(network=data.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
-                                  time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
-}
+  results <- c()
+  
+  params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2),
+                       sub = c(0, 5, 10, 20, 30, 0, 5, 10, 20, 30))
+  
+  for (i in 1:nrow(params)) {
+    result <- BNFinder(data, data.name, regulators=regs, priors=priors,
+                       lim=params[i,1], sub=params[i,2], k=1, path=path)
+    
+    results <- c(results, list(list(network=data.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
+                                    time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
+  }
 
+}
 ########
 save(results, file=paste(data.name, "_results.RData", sep=""))
 
