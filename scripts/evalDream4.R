@@ -75,6 +75,7 @@ emethod <- eval_methods[2]
 data = dream4ts100
 gold = dream4gold100
 data.name = "dream4ts100"
+no.top = 0.2
 
 load(paste("../bnf_out/", data.name, "_results.RData", sep=""))
 
@@ -86,6 +87,7 @@ for (i in 1:length(results)) {
   d <- data[[network]][, -c(1,2)]
   true = EdgeToAdj(gold[[network]], colnames(d), attr="edge")
   sym.true = isSymmetric(true)
+  print(sym.true)
   results[[i]]$inf.net$Weight <- as.numeric(results[[i]]$inf.net$Weight)
 
   method <- paste("BNFinder", results[[i]]$params, sep="")
@@ -109,6 +111,7 @@ for (i in 1:length(results)) {
                         true, sym=TRUE)
   }
   if (!is.null(e)) {
+    print("not null")
     eval <- rbind(eval, c(method, e[1], e[2], network, results[[i]]$time.sec))
   }
   eval.sym <- rbind(eval.sym, c(method, e.sym[1], e.sym[2], network, results[[i]]$time.sec))
