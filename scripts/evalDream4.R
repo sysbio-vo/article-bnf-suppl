@@ -45,7 +45,9 @@ eval_minet <- function(inf, gold, sym) {
   if (sym==FALSE) {
     e <- validate(inf, gold)
   } else {
-    gold <- pmax(gold,t(gold))
+    if (!isSymmetrix(gold)) {
+      gold <- pmax(gold,t(gold))
+    }
     e <- validate(inf, gold)
   }
   roc <- auc.roc(e)
@@ -81,7 +83,8 @@ eval <- data.frame(method=c(1), AUROC=c(1), AUPR=c(1), no.net=c(1), time.sec=c(1
 
 for (i in 1:length(results)) {
   network = as.numeric(substr(results[[i]]$network, nchar(results[[i]]$network), nchar(results[[i]]$network)))
-  true = EdgeToAdj(gold[[network]], colnames(data), attr="edge")
+  d <- data[[network]][, -c(1,2)]
+  true = EdgeToAdj(gold[[network]], colnames(d), attr="edge")
   sym.true = isSymmetric(true)
   results[[i]]$inf.net$Weight <- as.numeric(results[[i]]$inf.net$Weight)
 
@@ -90,19 +93,19 @@ for (i in 1:length(results)) {
   e = NULL
   if (emethod=="netb") {
     if (!sym.true) {
-      e <- eval_netb(EdgeToAdj(results[[i]]$inf.net, colnames(data), attr="Weight"),
+      e <- eval_netb(EdgeToAdj(results[[i]]$inf.net, colnames(d), attr="Weight"),
                      true, sym=FALSE, no.top=no.top) 
     }
     
-    e.sym <- eval_netb(EdgeToAdj(results[[i]]$inf.net, colnames(data), attr="Weight"),
+    e.sym <- eval_netb(EdgeToAdj(results[[i]]$inf.net, colnames(d), attr="Weight"),
                        true, sym=TRUE, no.top=no.top) 
   }
   if (emethod=="mnet") {
     if (!sym.true) {
-      e <- eval_minet(EdgeToAdj(results[[i]]$inf.net, colnames(data), attr="Weight"),
+      e <- eval_minet(EdgeToAdj(results[[i]]$inf.net, colnames(d), attr="Weight"),
                       true, sym=FALSE)
     }
-    e.sym <- eval_minet(EdgeToAdj(results[[i]]$inf.net, colnames(data), attr="Weight"),
+    e.sym <- eval_minet(EdgeToAdj(results[[i]]$inf.net, colnames(d), attr="Weight"),
                         true, sym=TRUE)
   }
   if (!is.null(e)) {
@@ -122,7 +125,7 @@ for (i in 1:length(data)) {
   network=i
   d <- data[[network]][, -c(1,2)]
   nTimePoints <- length(unique(data[[network]]$time))
-  true = EdgeToAdj(gold[[network]], colnames(data), attr="edge")
+  true = EdgeToAdj(gold[[network]], colnames(d), attr="edge")
   sym.true = isSymmetric(true)
 
   for (j in 1:length(methods)) {  
@@ -130,9 +133,9 @@ for (i in 1:length(data)) {
     print(method)
     start_time <- Sys.time()
     if (method=="FastBMA") {
-      inf <- do.call(functions[j], list(data, nTimePoints, priors = reg.prob, known = NULL))
+      inf <- do.call(functions[j], list(d, nTimePoints, priors = reg.prob, known = NULL))
     } else {
-      inf <- do.call(functions[j], list(data))
+      inf <- do.call(functions[j], list(d))
     }
     end_time <- Sys.time()
     time <- as.numeric(end_time - start_time)
