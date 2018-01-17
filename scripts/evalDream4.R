@@ -41,39 +41,75 @@ FastBMA <- function(data, nTimePoints){
   return(adj)
 }
 
-data = dream4ts10
-gold = dream4gold10
-data.name = "dream4ts10"
+eval_minet <- function(inf, gold, sym) {
+  if (sym==FALSE) {
+    e <- validate(inf, gold)
+  } else {
+    gold <- pmax(gold,t(gold))
+    e <- validate(inf, gold)
+  }
+  roc <- auc.roc(e)
+  pr <- auc.pr(e)
+  
+  return(c(roc, pr))
+}
+
+eval_netb <- function(inf, gold, sym, no.top) {
+  nEdges <- round((ncol(gold)^2 - ncol(gold))*no.top)
+  if (sym==FALSE) {
+    e <- evaluate(inf, gold, sym=FALSE, extend=nEdges)
+  } else {
+    e <- evaluate(inf, gold, sym=TRUE, extend=nEdges)
+  }
+  roc <- auroc(e, nEdges)
+  pr <- aupr(e, nEdges)
+  
+  return(c(roc, pr))
+}
+
+eval_methods <- c("netb", "mnet")
+emethod <- eval_methods[2]
+
+data = dream4ts100
+gold = dream4gold100
+data.name = "dream4ts100"
 
 load(paste("../bnf_out/", data.name, "_results.RData", sep=""))
 
-eval20top.sym <- data.frame(method=c(1), AUROC=c(1), AUPR=c(1), no.net=c(1), time.sec=c(1))
-eval20top <- data.frame(method=c(1), AUROC=c(1), AUPR=c(1), no.net=c(1), time.sec=c(1))
+eval.sym <- data.frame(method=c(1), AUROC=c(1), AUPR=c(1), no.net=c(1), time.sec=c(1))
+eval <- data.frame(method=c(1), AUROC=c(1), AUPR=c(1), no.net=c(1), time.sec=c(1))
 
 for (i in 1:length(results)) {
   network = as.numeric(substr(results[[i]]$network, nchar(results[[i]]$network), nchar(results[[i]]$network)))
+  true = EdgeToAdj(gold[[network]], colnames(data), attr="edge")
+  sym.true = isSymmetric(true)
   results[[i]]$inf.net$Weight <- as.numeric(results[[i]]$inf.net$Weight)
 
   method <- paste("BNFinder", results[[i]]$params, sep="")
-  nGenes <- ncol(data[[network]][, -c(1:2)])
-  nEdges = round((nGenes^2 - nGenes)*0.2)
-  #nEdges = sum(gold[[network]]$edge)
-  
-  e <- evaluate(EdgeToAdj(results[[i]]$inf.net, colnames(data[[network]][, -c(1:2)]), attr="Weight"),
-                EdgeToAdj(gold[[network]], colnames(data[[network]][, -c(1:2)]), attr="edge"),
-                sym=FALSE, extend=nEdges)
-  eval20top <- rbind(eval20top, c(method, auroc(e, nEdges), aupr(e, nEdges), network, results[[i]]$time.sec))
 
-  e <- evaluate(EdgeToAdj(results[[i]]$inf.net, colnames(data[[network]][, -c(1:2)]), attr="Weight"),
-                EdgeToAdj(gold[[network]], colnames(data[[network]][, -c(1:2)]), attr="edge"),
-                sym=TRUE, extend=nEdges)
-  eval20top.sym <- rbind(eval20top.sym, c(method, auroc(e, nEdges), aupr(e, nEdges), network, results[[i]]$time.sec))
+  e = NULL
+  if (emethod=="netb") {
+    if (!sym.true) {
+      e <- eval_netb(EdgeToAdj(results[[i]]$inf.net, colnames(data), attr="Weight"),
+                     true, sym=FALSE, no.top=no.top) 
+    }
+    
+    e.sym <- eval_netb(EdgeToAdj(results[[i]]$inf.net, colnames(data), attr="Weight"),
+                       true, sym=TRUE, no.top=no.top) 
+  }
+  if (emethod=="mnet") {
+    if (!sym.true) {
+      e <- eval_minet(EdgeToAdj(results[[i]]$inf.net, colnames(data), attr="Weight"),
+                      true, sym=FALSE)
+    }
+    e.sym <- eval_minet(EdgeToAdj(results[[i]]$inf.net, colnames(data), attr="Weight"),
+                        true, sym=TRUE)
+  }
+  if (!is.null(e)) {
+    eval <- rbind(eval, c(method, e[1], e[2], network, results[[i]]$time.sec))
+  }
+  eval.sym <- rbind(eval.sym, c(method, e.sym[1], e.sym[2], network, results[[i]]$time.sec))
 }
-
-eval20top <- eval20top[-1, ]
-eval20top <- eval20top[grep("L0I10", eval20top$method),]
-eval20top.sym <- eval20top.sym[-1, ]
-eval20top.sym <- eval20top.sym[grep("L0I10", eval20top.sym$method),]
 
 methods <- c("FastBMA", "aracne","c3net","clr",
              "Genie3","mrnet",
@@ -82,51 +118,60 @@ functions <- c("FastBMA", "aracne.wrap","c3net.wrap","clr.wrap",
                "Genie3.wrap","mrnet.wrap",
                "mutrank.wrap","mrnetb.wrap","pcit.wrap")
 
-methods.nonsym <- c("FastBMA", "Genie3")
-functions.nonsym <- c("FastBMA", "Genie3.wrap")
-
 for (i in 1:length(data)) {
   network=i
   d <- data[[network]][, -c(1,2)]
-  nGenes <- ncol(data[[network]][, -c(1:2)])
-  nEdges = round((nGenes^2 - nGenes)*0.2)
-  #nEdges = sum(gold[[network]]$edge)
   nTimePoints <- length(unique(data[[network]]$time))
-  
-  for (j in 1:length(methods)) {
-    method = methods[j]
-    start_time <- Sys.time()
-    if (method=="FastBMA") {
-      inf <- do.call(functions[j], list(d, nTimePoints))
-    } else {
-      inf <- do.call(functions[j], list(d))
-    }
-    end_time <- Sys.time()
-    time <- as.numeric(end_time - start_time)
-  
-    e <- evaluate(inf, EdgeToAdj(gold[[network]], colnames(data[[network]][, -c(1:2)]), attr="edge"),
-                  sym=TRUE, extend=nEdges)
-    eval20top.sym <- rbind(eval20top.sym, c(method, auroc(e, nEdges), aupr(e, nEdges), network, time))
-  }
-  
-  for (j in 1:length(methods.nonsym)) {
-    method = methods.nonsym[j]
-    start_time <- Sys.time()
-    if (method=="FastBMA") {
-      inf <- do.call(functions[j], list(d, nTimePoints))
-    } else {
-      inf <- do.call(functions[j], list(d))
-    }
-    end_time <- Sys.time()
-    time <- as.numeric(end_time - start_time)
+  true = EdgeToAdj(gold[[network]], colnames(data), attr="edge")
+  sym.true = isSymmetric(true)
 
-    e <- evaluate(inf, EdgeToAdj(gold[[network]], colnames(data[[network]][, -c(1:2)]), attr="edge"),
-                  sym=FALSE, extend=nEdges)
-    print(e)    
-    eval20top <- rbind(eval20top, c(method, auroc(e, nEdges), aupr(e, nEdges), network, time))
+  for (j in 1:length(methods)) {  
+    method = methods[j]
+    print(method)
+    start_time <- Sys.time()
+    if (method=="FastBMA") {
+      inf <- do.call(functions[j], list(data, nTimePoints, priors = reg.prob, known = NULL))
+    } else {
+      inf <- do.call(functions[j], list(data))
+    }
+    end_time <- Sys.time()
+    time <- as.numeric(end_time - start_time)
+    
+    sym.inf = isSymmetric(inf)
+    print(sym.inf)
+    e = NULL  
+    if ((sym.true) || (sym.inf)) {
+      if (emethod=="netb") {
+        e.sym <- eval_netb(inf, true, sym=TRUE, no.top=no.top) 
+      }
+      if (emethod=="mnet") {
+        e.sym <- eval_minet(inf, true, sym=TRUE)
+      }
+    } else if ((!sym.true)&&(!sym.inf)) {
+      if (emethod=="netb") {
+        e.sym <- eval_netb(inf, true, sym=TRUE, no.top=no.top) 
+        e <- eval_netb(inf, true, sym=FALSE, no.top=no.top) 
+      }
+      if (emethod=="mnet") {
+        e.sym <- eval_minet(inf, true, sym=TRUE)
+        e <- eval_minet(inf, true, sym=FALSE)
+      }
+    }
+    
+    eval.sym <- rbind(eval.sym, c(method, e.sym[1], e.sym[2], network, time))
+    if (!is.null(e)) {
+      eval <- rbind(eval, c(method, e[1], e[2], network, time))
+    }
   }
-  
 }
 
-eval20top <- eval20top[order(eval20top$no.net),]
-eval20top.sym <- eval20top.sym[order(eval20top.sym$no.net),]
+eval <- eval[-1, ]
+eval.sym <- eval.sym[-1, ]
+eval <- eval[order(eval$no.net),]
+eval.sym <- eval.sym[order(eval.sym$no.net),]
+
+write.table(eval, file = paste("../eval/", data.name, "_eval_",emethod,".tsv", sep=""),
+            quote=FALSE, sep="\t", col.names=TRUE, row.names = FALSE)
+
+write.table(eval.sym, file = paste("../eval/", data.name, "_eval_sym_",emethod,".tsv", sep=""),
+            quote=FALSE, sep="\t", col.names=TRUE, row.names = FALSE)
