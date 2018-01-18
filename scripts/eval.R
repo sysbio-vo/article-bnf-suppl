@@ -68,11 +68,12 @@ eval_netb <- function(inf, gold, sym, no.top) {
 }
 
 eval_methods <- c("netb", "mnet")
-emethod <- eval_methods[2]
+emethod <- eval_methods[1]
 
-BREM=FALSE
-YeastTS = TRUE
+BREM=TRUE
+YeastTS = FALSE
 
+no.top = 0.2
 if (BREM) {
   data = t(brem.data)
   gold = referencePairs
@@ -98,7 +99,6 @@ if (YeastTS) {
   gold = EdgeToAdj(gold, colnames(data), attr="edge")
   sym.true = isSymmetric(gold)
   data.name = "YeastTS"
-  no.top = 0.2
   
   methods <- c("FastBMA","aracne","c3net","clr",
                "Genie3","mrnet",
