@@ -144,7 +144,7 @@ if (BREM) {
 }
 
 ## Time Series Yeast
-YeastTS = FALSE
+YeastTS = TRUE
 if (YeastTS) {
   
   data = timeSeries[, -c(1:2)]
@@ -153,12 +153,12 @@ if (YeastTS) {
 
   results <- c()
   
-  params <- data.frame(lim=c(1),
-                       sub = c(2))
+params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3),
+                     sub = c(0, 5, 10, 20, 30, 0, 5, 10, 20, 30, 0, 5, 10, 20, 30))
   
   for (i in 1:nrow(params)) {
     result <- BNFinder(data, data.name, priors=edges,
-                       lim=params[i,1], sub=params[i,2], k=1, path=path)
+                       lim=params[i,1], sub=params[i,2], k=32, path=path)
     
     results <- c(results, list(list(network=data.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
                                     time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
