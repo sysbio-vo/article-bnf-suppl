@@ -1,5 +1,8 @@
 ## Testing netbenchmark
 
+library(devtools)
+dev_mode(on=T)
+install_github("paubellot/netbenchmark", ref="master")
 library(netbenchmark)
 
 ngenes <- dim(syntren300.data)[2]
@@ -18,6 +21,7 @@ auroc(r2)
 # True net with 0.9 instead of zeros versus true net
 syntren300.net.nozeros <- syntren300.net
 syntren300.net.nozeros[syntren300.net.nozeros==0] <- 0.9
+syntren300.net.nozeros[4, ] <- 0
 
 r3 <- evaluate(syntren300.net.nozeros,syntren300.net,extend=0,sym=FALSE)
 aupr(r3)
@@ -25,6 +29,8 @@ auroc(r3)
 r4 <- evaluate(syntren300.net.nozeros,syntren300.net,extend=no.edges,sym=FALSE)
 aupr(r4)
 auroc(r4)
+
+dev_mode(on=F)
 
 ## Testing minet
 
