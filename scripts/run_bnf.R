@@ -144,7 +144,7 @@ if (BREM) {
 }
 
 ## Time Series Yeast
-YeastTS = TRUE
+YeastTS = FALSE
 if (YeastTS) {
   
   data = timeSeries[, -c(1:2)]
@@ -167,13 +167,13 @@ params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3),
 }
 
 ## gnw2000, Yeast multifactorial
-GNW2000 = FALSE
+GNW2000 = TRUE
 if (GNW2000) {
 
   data = gnw2000.data
   data = gnw2000.data[sample(1:ncol(gnw2000.data), 150), ]
   gold = gnw2000.net
-  data.name = "gnw2000"
+  data.name = "gnw2000short"
   regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
   priors <- edges[which(edges$Regulator %in% colnames(data)),]
   priors <- priors[which(priors$TargetGene %in% colnames(data)),]
@@ -185,7 +185,7 @@ if (GNW2000) {
   
   for (i in 1:nrow(params)) {
     result <- BNFinder(data, data.name, regulators=regs, priors=priors,
-                       lim=params[i,1], sub=params[i,2], k=1, path=path)
+                       lim=params[i,1], sub=params[i,2], k=32, path=path)
     
     results <- c(results, list(list(network=data.name,params=paste("L",params[i,1],"I",params[i,2],sep=""),
                                     time.sec=as.numeric(result[[1]]), inf.net=result[[2]])))
