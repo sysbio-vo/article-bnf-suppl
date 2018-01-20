@@ -180,8 +180,8 @@ if (GNW2000) {
   
   results <- c()
   
-  params <- data.frame(lim=c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2),
-                       sub = c(0, 5, 10, 20, 30, 0, 5, 10, 20, 30))
+  params <- data.frame(lim=c(1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2),
+                       sub = c(0, 5, 10, 20, 30, 40, 0, 5, 10, 20, 30, 40))
   
   for (i in 1:nrow(params)) {
     result <- BNFinder(data, data.name, regulators=regs, priors=priors,
