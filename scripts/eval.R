@@ -4,8 +4,15 @@ library(igraph)
 library(org.Sc.sgd.db)
 library(abind)
 library(minet)
+library(GENIE3)
 data(dream4)
 data(vignette)
+
+Yeast.TFs <- read.table("../data/RegulationTwoColumnTable_Documented_2013927.tsv",
+                        check.names = FALSE, header=FALSE, sep=";", quote="")
+Yeast.TFs <- levels(unique(Yeast.TFs[,1]))
+gene_to_ORF <- select(org.Sc.sgd.db, keys=Yeast.TFs, columns = c("ORF"),
+                      keytype="COMMON")
 
 EdgeToAdj <- function(edgeList, colnames, attr) {
   g <- graph.data.frame(edgeList)
@@ -22,6 +29,18 @@ EdgeToAdj <- function(edgeList, colnames, attr) {
   return(adj)
 }
 
+expandInfMatrix <- function(adj, colnames) {
+  missing <- colnames[(!(colnames %in% colnames(adj)))]
+  if (length(missing)==0) {
+    missing <- colnames[(!(colnames %in% rownames(adj)))]
+  }
+  adj <- as.data.frame(adj)
+  adj[, missing] <- 0
+  adj[missing, ] <- 0
+  adj <- as.matrix(adj)
+  return(adj)
+}
+
 FastBMA <- function(data, nTimePoints, priors = NULL, known = NULL){
   edges <- networkBMA(data = data, nTimePoints = nTimePoints, prior.prob = priors, known = known,
                       control=fastBMAcontrol(fastgCtrl=fastgControl(optimize=4)))
@@ -29,11 +48,7 @@ FastBMA <- function(data, nTimePoints, priors = NULL, known = NULL){
   adj <- get.adjacency(g, attr='PostProb',sparse=FALSE)
   
   if (length(colnames(data)) > length(colnames(adj))) {
-    missing <- colnames(data)[(!(colnames(data) %in% colnames(adj)))]
-    adj <- as.data.frame(adj)
-    adj[, missing] <- 0
-    adj[missing, ] <- 0
-    adj <- as.matrix(adj)
+    adj <- expandInfMatrix(adj, colnames(data))
   }
   
   adj <- adj[colnames(data),colnames(data)]
@@ -68,7 +83,7 @@ eval_netb <- function(inf, gold, sym, no.top) {
 }
 
 eval_methods <- c("netb", "mnet")
-emethod <- eval_methods[1]
+emethod <- eval_methods[2]
 
 BREM=TRUE
 YeastTS = FALSE
@@ -86,7 +101,7 @@ if (BREM) {
                "Genie3","mrnet",
                "mutrank","mrnetb","pcit")
   functions <- c("aracne.wrap","c3net.wrap","clr.wrap",
-                 "Genie3.wrap","mrnet.wrap",
+                 "GENIE3","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
 }
 
@@ -145,14 +160,20 @@ for (i in 1:length(results)) {
 for (j in 1:length(methods)) {
   method = methods[j]
   print(method)
-  start_time <- Sys.time()
+  start_time <- proc.time()
   if (method=="FastBMA") {
     inf <- do.call(functions[j], list(data, nTimePoints, priors = reg.prob, known = NULL))
+  } else if (method=="Genie3") {
+    regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
+    inf <- do.call(functions[j], list(t(data), regulators = regs))
+    if (length(colnames(data)) > min(length(colnames(inf)), length(rownames(inf)))) {
+      inf <- expandInfMatrix(inf, colnames(data))
+    }
   } else {
     inf <- do.call(functions[j], list(data))
   }
-  end_time <- Sys.time()
-  time <- as.numeric(end_time - start_time)
+  end_time <- proc.time()
+  time <- (end_time - start_time)[3]
 
   sym.inf = isSymmetric(inf)
   print(sym.inf)
