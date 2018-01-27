@@ -17,15 +17,11 @@ gene_to_ORF <- select(org.Sc.sgd.db, keys=Yeast.TFs, columns = c("ORF"),
 EdgeToAdj <- function(edgeList, colnames, attr) {
   g <- graph.data.frame(edgeList)
   adj <- get.adjacency(g, attr=attr,sparse=FALSE)
+  
   if (length(colnames) > length(colnames(adj))) {
-    missing <- colnames[(!(colnames %in% colnames(adj)))]
-    adj <- as.data.frame(adj)
-    adj[, missing] <- 0
-    adj[missing, ] <- 0
-    adj <- as.matrix(adj)
+    adj <- expandInfMatrix(adj, colnames)
   }
   
-  adj <- adj[colnames,colnames]
   return(adj)
 }
 
@@ -38,6 +34,7 @@ expandInfMatrix <- function(adj, colnames) {
   adj[, missing] <- 0
   adj[missing, ] <- 0
   adj <- as.matrix(adj)
+  adj <- adj[colnames(data),colnames(data)]
   return(adj)
 }
 
@@ -51,7 +48,6 @@ FastBMA <- function(data, nTimePoints, priors = NULL, known = NULL){
     adj <- expandInfMatrix(adj, colnames(data))
   }
   
-  adj <- adj[colnames(data),colnames(data)]
   adj <- adj/max(adj)
   return(adj)
 }
@@ -85,11 +81,11 @@ eval_netb <- function(inf, gold, sym, no.top) {
 eval_methods <- c("netb", "mnet")
 emethod <- eval_methods[2]
 
-BREM=TRUE
-YeastTS = FALSE
+datasets <- c("brem", "YeastTS", "gnw2000", "gnw2000short")
+dataset <- c[3]
 
 no.top = 0.2
-if (BREM) {
+if (dataset=="brem") {
   data = t(brem.data)
   gold = referencePairs
   gold$edge <- 1
@@ -98,14 +94,14 @@ if (BREM) {
   data.name = "brem"
   
   methods <- c("aracne","c3net","clr",
-               "Genie3","mrnet",
+               "Genie3", "Genie3.noregs","mrnet",
                "mutrank","mrnetb","pcit")
   functions <- c("aracne.wrap","c3net.wrap","clr.wrap",
-                 "GENIE3","mrnet.wrap",
+                 "GENIE3", "Genie3.wrap","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
 }
 
-if (YeastTS) {
+if (dataset=="YeastTS") {
   data = timeSeries
   nTimePoints <- length(unique(data$time))
   data = data[,-c(1:2)]
@@ -113,13 +109,31 @@ if (YeastTS) {
   gold$edge <- 1
   gold = EdgeToAdj(gold, colnames(data), attr="edge")
   sym.true = isSymmetric(gold)
-  data.name = "YeastTS"
+  data.name = dataset
   
   methods <- c("FastBMA","aracne","c3net","clr",
                "Genie3","mrnet",
                "mutrank","mrnetb","pcit")
   functions <- c("FastBMA","aracne.wrap","c3net.wrap","clr.wrap",
                  "Genie3.wrap","mrnet.wrap",
+                 "mutrank.wrap","mrnetb.wrap","pcit.wrap")
+}
+
+if ((dataset=="gnw2000")||(dataset=="gnw2000short")) {
+  if (dataset=="GNW_SHORT") {
+    data = read.table("../bnf_in/gnw2000short.in", header=TRUE, sep = "\t")
+  } else {
+    data = gnw2000.data
+  }
+  gold = gnw2000.net
+  sym.true = isSymmetric(gold)
+  data.name = dataset
+  
+  methods <- c("aracne","c3net","clr",
+               "Genie3", "Genie3.noregs","mrnet",
+               "mutrank","mrnetb","pcit")
+  functions <- c("aracne.wrap","c3net.wrap","clr.wrap",
+                 "GENIE3", "Genie3.wrap","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
 }
 
