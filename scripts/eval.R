@@ -7,6 +7,10 @@ library(minet)
 library(GENIE3)
 data(dream4)
 data(vignette)
+requireNamespace("foreach")
+requireNamespace("doRNG")
+requireNamespace("doParallel")
+
 
 Yeast.TFs <- read.table("../data/RegulationTwoColumnTable_Documented_2013927.tsv",
                         check.names = FALSE, header=FALSE, sep=";", quote="")
@@ -79,7 +83,7 @@ eval_netb <- function(inf, gold, sym, no.top) {
 }
 
 eval_methods <- c("netb", "mnet")
-emethod <- eval_methods[1]
+emethod <- eval_methods[2]
 
 datasets <- c("brem", "YeastTS", "gnw2000", "gnw2000short")
 dataset <- datasets[4]
@@ -99,7 +103,7 @@ if (dataset=="brem") {
                "Genie3", "Genie3.noregs","mrnet",
                "mutrank","mrnetb","pcit")
   functions <- c("aracne.wrap","c3net.wrap","clr.wrap",
-                 "GENIE3", "Genie3.wrap","mrnet.wrap",
+                 "GENIE3", "GENIE3","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
 }
 
@@ -117,7 +121,7 @@ if (dataset=="YeastTS") {
                "Genie3.noregs","mrnet",
                "mutrank","mrnetb","pcit")
   functions <- c("FastBMA","aracne.wrap","c3net.wrap","clr.wrap",
-                 "Genie3.wrap","mrnet.wrap",
+                 "GENIE3","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
 }
 
@@ -137,7 +141,7 @@ if ((dataset=="gnw2000")||(dataset=="gnw2000short")) {
                "Genie3", "Genie3.noregs","mrnet",
                "mutrank","mrnetb","pcit")
   functions <- c("aracne.wrap","c3net.wrap","clr.wrap",
-                 "GENIE3", "Genie3.wrap","mrnet.wrap",
+                 "GENIE3", "GENIE3","mrnet.wrap",
                  "mutrank.wrap","mrnetb.wrap","pcit.wrap")
 }
 
@@ -182,9 +186,13 @@ for (j in 1:length(methods)) {
   start_time <- proc.time()
   if (method=="FastBMA") {
     inf <- do.call(functions[j], list(data, nTimePoints, priors = reg.prob, known = NULL))
-  } else if (method=="Genie3") {
-    regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
-    inf <- do.call(functions[j], list(t(data), regulators = regs))
+  } else if ((method=="Genie3")||(method=="Genie3.noregs")) {
+    if (method=="Genie3.noregs") {
+      regs = NULL 
+    } else {
+      regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
+    }
+    inf <- do.call(functions[j], list(t(data), regulators = regs, nCores=1))
     if (length(colnames(data)) > min(length(colnames(inf)), length(rownames(inf)))) {
       inf <- expandInfMatrix(inf, colnames(data))
     }
