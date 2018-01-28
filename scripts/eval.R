@@ -17,7 +17,6 @@ gene_to_ORF <- select(org.Sc.sgd.db, keys=Yeast.TFs, columns = c("ORF"),
 EdgeToAdj <- function(edgeList, colnames, attr) {
   g <- graph.data.frame(edgeList)
   adj <- get.adjacency(g, attr=attr,sparse=FALSE)
-  
   if (length(colnames) > length(colnames(adj))) {
     adj <- expandInfMatrix(adj, colnames)
   }
@@ -27,6 +26,7 @@ EdgeToAdj <- function(edgeList, colnames, attr) {
 
 expandInfMatrix <- function(adj, colnames) {
   missing <- colnames[(!(colnames %in% colnames(adj)))]
+  #print(length(missing))
   if (length(missing)==0) {
     missing <- colnames[(!(colnames %in% rownames(adj)))]
   }
@@ -34,7 +34,7 @@ expandInfMatrix <- function(adj, colnames) {
   adj[, missing] <- 0
   adj[missing, ] <- 0
   adj <- as.matrix(adj)
-  adj <- adj[colnames(data),colnames(data)]
+  adj <- adj[colnames,colnames]
   return(adj)
 }
 
@@ -79,20 +79,22 @@ eval_netb <- function(inf, gold, sym, no.top) {
 }
 
 eval_methods <- c("netb", "mnet")
-emethod <- eval_methods[2]
+emethod <- eval_methods[1]
 
 datasets <- c("brem", "YeastTS", "gnw2000", "gnw2000short")
-dataset <- c[3]
+dataset <- datasets[4]
 
 no.top = 0.2
 if (dataset=="brem") {
-  data = t(brem.data)
-  gold = referencePairs
+  data <- t(brem.data)
+  gold <- referencePairs
+  gold <- gold[which(gold$Regulator %in% colnames(data)),]
+  gold <- gold[which(gold$TargetGene %in% colnames(data)),]
+
   gold$edge <- 1
-  gold = EdgeToAdj(gold, colnames(data), attr="edge")
+  gold <- EdgeToAdj(gold, colnames(data), attr="edge")
   sym.true = isSymmetric(gold)
   data.name = "brem"
-  
   methods <- c("aracne","c3net","clr",
                "Genie3", "Genie3.noregs","mrnet",
                "mutrank","mrnetb","pcit")
@@ -112,7 +114,7 @@ if (dataset=="YeastTS") {
   data.name = dataset
   
   methods <- c("FastBMA","aracne","c3net","clr",
-               "Genie3","mrnet",
+               "Genie3.noregs","mrnet",
                "mutrank","mrnetb","pcit")
   functions <- c("FastBMA","aracne.wrap","c3net.wrap","clr.wrap",
                  "Genie3.wrap","mrnet.wrap",
@@ -120,8 +122,10 @@ if (dataset=="YeastTS") {
 }
 
 if ((dataset=="gnw2000")||(dataset=="gnw2000short")) {
-  if (dataset=="GNW_SHORT") {
+  if (dataset=="gnw2000short") {
+    print("short")
     data = read.table("../bnf_in/gnw2000short.in", header=TRUE, sep = "\t")
+    data = t(data)
   } else {
     data = gnw2000.data
   }
@@ -142,11 +146,12 @@ load(paste("../bnf_out/", data.name, "_results.RData", sep=""))
 eval.sym <- data.frame(method=c(1), AUROC=c(1), AUPR=c(1), no.net=c(1), time.sec=c(1))
 eval <- data.frame(method=c(1), AUROC=c(1), AUPR=c(1), no.net=c(1), time.sec=c(1))
 
+
 for (i in 1:length(results)) {
   results[[i]]$inf.net$Weight <- as.numeric(results[[i]]$inf.net$Weight)
   
   method <- paste("BNFinder", results[[i]]$params, sep="")
-
+  print(method)
   e = NULL
   if (emethod=="netb") {
     if (!sym.true) {
