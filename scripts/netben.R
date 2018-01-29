@@ -6,16 +6,6 @@ library(abind)
 data(dream4)
 data(vignette)
 
-## Yeast
-# Read Yeast TFs
-Yeast.TFs <- read.table("../data/RegulationTwoColumnTable_Documented_2013927.tsv",
-                        check.names = FALSE, header=FALSE, sep=";", quote="")
-Yeast.TFs <- levels(unique(Yeast.TFs[,1]))
-gene_to_ORF <- select(org.Sc.sgd.db, keys=Yeast.TFs, columns = c("ORF"),
-                      keytype="COMMON")
-
-regs <- colnames(gnw2000.data)[which(colnames(gnw2000.data) %in% gene_to_ORF$ORF)]
-
 # Define a wrapper function
 FastBMA <- function(data, threshold=thr){
   edges <- networkBMA(data = data, nTimePoints = nTimePoints,
@@ -316,7 +306,7 @@ benchmark <- function(data, true.net, methods, sym, no.top) {
 
 dream.bench <- function(data, gold, methods, sym, no.top) {
   results <- c()
-  for (network in 1:length(data)) {
+  for (network in 1:1) {
     print(paste("Processing network", network))
     dat <- data[[network]][, -c(1:2)]
     true.net <- gold[[network]]
@@ -352,7 +342,7 @@ yeast.bench <- function(data, gold, methods, sym, no.top) {
 }
 
 
-path_to_bnf = ""
+path_to_bnf = "/home/aln/Science/URGENT/article/article-bnf-suppl/bnfinder/"
 
 ## Dream4 tests
 
@@ -381,10 +371,141 @@ write.table(result, paste(dname,"top100.txt", sep=""), sep="\t", quote=FALSE)
 result <- dream.bench(data, gold, methods, no.top=100, sym=TRUE)
 write.table(result, paste(dname,"top100sym.txt", sep=""), sep="\t", quote=FALSE)
 
+#Evaluate
+
+
+ngenes <- dim(syntren300.data)[2]
+nlinks <- ngenes^2-ngenes
+no.topedges=100
+no.edges <- round(nlinks*no.topedges/100)
+
+net <- clr.wrap(syntren300.data)
+
+r <- evaluate(net,syntren300.net,extend=no.edges,sym=FALSE)
+aupr(r)
+r <- evaluate(net,syntren300.net,extend=0,sym=FALSE)
+aupr(r)
+
+net <- net/max(net)
+net[net<0.5] <- 0
+
+syntren300.net.nozeros <- syntren300.net
+syntren300.net.nozeros[syntren300.net.nozeros==0] <- 0.9
+syntren300.net.nozeros[1,1] <- 0
+r <- evaluate(syntren300.net.nozeros,syntren300.net,extend=no.edges,sym=FALSE)
+aupr(r)
+auroc(r)
+
+r <- evaluate(syntren300.net.nozeros,syntren300.net,extend=0,sym=FALSE)
+aupr(r)
+auroc(r)
+
+t <- minet::validate(syntren300.net.nozeros,syntren300.net)
+minet::auc.pr(t)
+minet::auc.roc(t)
+
+data(dream4)
+network <- 2
+reference <- dream4gold10[[network]]
+nGenes <- length(unique(c(reference[,1],reference[,2])))
+nPossibleEdges <- nGenes^2
+reference <- reference[reference[,3] == 1,1:2]
+nTimePoints <- length(unique(dream4ts10[[network]]$time))
+edges1ts10 <- networkBMA( data = dream4ts10[[network]][,-(1:2)],
+                          nTimePoints = nTimePoints, prior.prob = 0.1,
+                          self = FALSE)
+size <- nPossibleEdges - nGenes
+thr=0
+yeast.data=""
+bnf <- BNFinderI10(dream4ts10[[network]][,-(1:2)])
+g <- graph.adjacency(bnf, weighted=TRUE, mode="directed")
+edges <- as.data.frame(get.edgelist(g))
+edges$weight <- E(g)$weight
+
+
+contingencyTables <- contabs(network = edges1ts10, reference = reference,
+                             size = size, thresholds = 0.1)
+scores(contingencyTables, what = c("sensitivity", "specificity", "FDR"))
+roc(contingencyTables, plotit = TRUE)
+prc(contingencyTables, plotit = TRUE)
+
+colnames(edges) <- names(edges1ts10)
+contingencyTables <- contabs(network = edges, reference = reference,
+                             size = size, thresholds = 0.1)
+scores(contingencyTables, what = c("sensitivity", "specificity", "FDR"))
+roc(contingencyTables, plotit = TRUE)
+prc(contingencyTables, plotit = TRUE)
+
+
 ## Brem data tests
 
-#data = as.data.frame(t(brem.data))
-#gold = referencePairs
+yeast.data="bma"
+data = as.data.frame(t(brem.data))
+gold = referencePairs
+dname = "brem"
+in.name = "brem.in"
+out.name = "brem.out"
 
-#result <- yeast.bench(data, gold, methods, no.top=20, sym=FALSE)
-#result <- yeast.bench(data, gold, methods, no.top=20, sym=FALSE)
+methods <- c("aracne.cwrap","c3net.cwrap","clr.cwrap",
+                            "Genie3.cwrap","mrnet.cwrap",
+                            "mutrank.cwrap","mrnetb.cwrap","pcit.cwrap",
+                            "BNFinderL1I10")
+                            
+result <- yeast.bench(data, gold, methods, no.top=20, sym=FALSE)
+
+# Priors for time series
+g <- graph.adjacency(1-reg.prob, weighted=TRUE, mode="directed")
+edges <- as.data.frame(get.edgelist(g))
+edges$weight <- E(g)$weight
+edges <- edges[,c(2, 3, 1)]
+edges <- edges[which(edges$weight<0.9),]
+known <- reg.known[, c(1, 2)]
+known$prob <- 0.2
+known <- known[, c(2, 3, 1)]
+colnames(edges) <- colnames(known)
+edges <- rbind(edges, known)
+edges$pe <- "#prioredge"
+edges <- edges[,c(4, 1, 2, 3)]
+c <- apply(edges, 1, function(x) {paste(x, collapse=" ")})
+
+
+
+true.net <- dream4gold10[[1]]
+true.net <- graph.data.frame(true.net)
+true.net <- get.adjacency(true.net, attr='edge', sparse=FALSE)
+true.net <- as.matrix(true.net[colnames(dream4ts10[[1]][,-c(1:2)]), colnames(dream4ts10[[1]][,-c(1:2)])])
+data <- dream4ts10[[1]][,-c(1:2)]
+bnf <- BNFinderL3I5(data)
+bma <- FastBMA(data)
+clr <- clr.wrap(data)
+
+aupr <- netbenchmark.data(data=dream4ts10[[1]][,-c(1:2)],
+                          methods=c("BNFinderL3I5","FastBMA"), sym = FALSE,
+                          no.topedges = 50, true.net = true.net, plot=TRUE)
+
+
+
+library(minet)
+syntren300.net.nozeros <- syntren300.net
+length(which(syntren300.net.nozeros==0))
+syntren300.net.nozeros[syntren300.net.nozeros==0] <- runif(89532, 0.0, 1.1)
+
+bf <- minet::validate(bnf,true.net)
+bm <- minet::validate(bma,true.net)
+cl <- minet::validate(clr, true.net)
+
+auc.pr(bf)
+auc.pr(bm)
+auc.pr(cl)
+auc.roc(bf)
+auc.roc(bm)
+auc.roc(cl)
+
+dev <- minet::show.pr(bf, col="green", type="b")
+dev <- minet::show.pr(bm, col="blue", type="b", dev = dev)
+minet::show.pr(cl, device=dev, col="red",type="b")
+
+dev.off()
+dev <- minet::show.roc(bf, col="green", type="b")
+dev <- minet::show.roc(bm, col="blue", type="b", dev = dev)
+minet::show.roc(cl, device=dev, col="red",type="b")
