@@ -7,10 +7,6 @@ library(minet)
 library(GENIE3)
 data(dream4)
 data(vignette)
-requireNamespace("foreach")
-requireNamespace("doRNG")
-requireNamespace("doParallel")
-
 
 Yeast.TFs <- read.table("../data/RegulationTwoColumnTable_Documented_2013927.tsv",
                         check.names = FALSE, header=FALSE, sep=";", quote="")
