@@ -9,12 +9,12 @@ STD=0.002
 PROB_ERR=0.0001
 
 # number of regulators
-N_REG=2
+N_REG=11
 #number of target genes
-N_TARG=4
+N_TARG=11
 
 # number of observations for each regulator  combination
-N_OBS=2
+N_OBS=1
 
 
 
@@ -48,7 +48,7 @@ targ_res=[]
 for i in range(2**N_REG*N_OBS): #observation number
     res_i=[]
     for j in range(N_TARG): #target gene number
-        res_i.append(numpy.random.randn()*STD+int(noisy_and(bins[i][:j])))#target j takes first j regulators
+        res_i.append(numpy.random.randn()*STD+int(noisy_and(bins[i][:j]))) #target j takes first j regulators
         #print bins[i][:j], noisy_and(bins[i][:j]), res_i[-1]
     targ_res.append(res_i)
 
