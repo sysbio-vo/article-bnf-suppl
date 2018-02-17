@@ -5,8 +5,10 @@ library(gridExtra)
 library(reshape2)
 library(RColorBrewer)
 
-norm = 60
-dname = "sachs"
+norm = 3600
+units = "hours"
+dnames = c("sachs", "input8")
+dname = dnames[2]
 data <- read.table(paste("../performance/", dname, ".tsv", sep=""))
 
 
@@ -33,7 +35,7 @@ pd <- position_dodge(0)
 pr <- ggplot(performance %>% arrange(algorithm), aes(x=cores, y=mean, colour=algorithm)) + 
       geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=pd, colour="#373738") +
       geom_line(position=pd) + geom_point(aes(shape=algorithm, colour=algorithm)) +
-      ylab("Performance, mins") + ggtitle("Performance comparison") +
+      ylab(paste("Performance,", units)) + ggtitle("Performance comparison") +
       theme(legend.position="bottom", legend.title=element_blank()) +
       scale_x_continuous(breaks=c(data$cores), labels=c(data$cores), minor_breaks = NULL)  
 
