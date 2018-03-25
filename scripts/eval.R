@@ -4,6 +4,8 @@ library(igraph)
 library(org.Sc.sgd.db)
 library(abind)
 library(minet)
+library(doParallel)
+library(doRNG)
 library(GENIE3)
 data(dream4)
 data(vignette)
@@ -19,8 +21,10 @@ EdgeToAdj <- function(edgeList, colnames, attr) {
   adj <- get.adjacency(g, attr=attr,sparse=FALSE)
   if (length(colnames) > length(colnames(adj))) {
     adj <- expandInfMatrix(adj, colnames)
+  } else {
+    adj <- as.matrix(adj)
+    adj <- adj[colnames,colnames]
   }
-  
   return(adj)
 }
 
@@ -41,13 +45,9 @@ expandInfMatrix <- function(adj, colnames) {
 FastBMA <- function(data, nTimePoints, priors = NULL, known = NULL){
   edges <- networkBMA(data = data, nTimePoints = nTimePoints, prior.prob = priors, known = known,
                       control=fastBMAcontrol(fastgCtrl=fastgControl(optimize=4)))
-  g <- graph.data.frame(edges)
-  adj <- get.adjacency(g, attr='PostProb',sparse=FALSE)
-  
-  if (length(colnames(data)) > length(colnames(adj))) {
-    adj <- expandInfMatrix(adj, colnames(data))
-  }
-  
+
+  adj <- EdgeToAdj(edges, colnames(data), "PostProb")
+
   adj <- adj/max(adj)
   return(adj)
 }
@@ -188,7 +188,7 @@ for (j in 1:length(methods)) {
     } else {
       regs <- colnames(data)[which(colnames(data) %in% gene_to_ORF$ORF)]
     }
-    inf <- do.call(functions[j], list(t(data), regulators = regs, nCores=1))
+    inf <- do.call(functions[j], list(t(data), regulators = regs, nCores=50))
     if (length(colnames(data)) > min(length(colnames(inf)), length(rownames(inf)))) {
       inf <- expandInfMatrix(inf, colnames(data))
     }
