@@ -1,0 +1,5 @@
+BNF Dream10 = 10 cores
+BNF other datasets = 32 cores
+
+Genie3 gnw2000short = 50 cores
+Genie3 gnw2000 = 28 cores
