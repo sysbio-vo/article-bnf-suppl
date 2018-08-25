@@ -35,21 +35,24 @@ pd <- position_dodge(0)
 pr <- ggplot(performance %>% arrange(algorithm), aes(x=cores, y=mean, colour=algorithm)) + 
       geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=pd, colour="#373738") +
       geom_line(position=pd) + geom_point(aes(shape=algorithm, colour=algorithm)) +
-      ylab(paste("Running time,", units)) + ggtitle("Performance comparison") +
+      ylab(paste("Running time,", units)) +
+      ggtitle(expression(paste(bold("A."), "   Performance comparison"))) +
       theme(legend.position="bottom", legend.title=element_blank()) +
       scale_x_continuous(breaks=c(data$cores), labels=c(data$cores), minor_breaks = NULL)  
 
 sp <- ggplot(speedup %>% arrange(algorithm), aes(x=cores, y=mean, colour=algorithm)) + 
       geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=pd, colour="#373738") +
       geom_line(position=pd) + geom_point(aes(shape=algorithm, colour=algorithm)) +
-      ylab("Speedup") + ggtitle("Speedup comparison") +
+      ylab("Speedup") +
+      ggtitle(expression(paste(bold("B."), "   Speedup comparison"))) +
       theme(legend.position="bottom", legend.title=element_blank()) +
       scale_x_continuous(breaks=c(speedup$cores), labels=c(speedup$cores), minor_breaks = NULL)  
 
 ef <- ggplot(efficiency %>% arrange(algorithm), aes(x=cores, y=mean, colour=algorithm)) + 
       geom_errorbar(aes(ymin=mean-se, ymax=mean+se), position=pd, colour="#373738") +
       geom_line(position=pd) + geom_point(aes(shape=algorithm, colour=algorithm)) +
-      ylab("Efficiency") + ggtitle("Efficiency comparison") +
+      ylab("Efficiency") +
+      ggtitle(expression(paste(bold("C."), "   Efficiency comparison"))) +
       theme(legend.position="bottom", legend.title=element_blank()) +
       scale_x_continuous(breaks=c(efficiency$cores), labels=c(efficiency$cores), minor_breaks = NULL)  
 

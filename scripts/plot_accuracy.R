@@ -6,17 +6,17 @@ library(reshape2)
 library(RColorBrewer)
 
 
-mname = "netb"
-sym = "sym_"
+mname = "mnet"
+sym = ""
 
 bnf = "BNFinderL2I30"
 dname = "dream4ts10"
 data <- read.table(paste("../eval/", dname,"_eval_", sym, mname, ".tsv", sep=""), header=T)
 
-b <- data[which(data$method==bnf),]
-data <- data[-grep("BNFinder", data$method),]
-#data <- data[grep("BNFinder", data$method),]
-data <- rbind(data, b)
+#b <- data[which(data$method==bnf),]
+#data <- data[-grep("BNFinder", data$method),]
+data <- data[grep("BNFinder", data$method),]
+#data <- rbind(data, b)
 data <- data[order(data$no.net),]
 
 data <- data %>% group_by(no.net) %>%
@@ -41,7 +41,7 @@ pl.roc <- ggplot(data, aes(x = no.net, y = roc.rank, colour = method)) +
           theme(panel.grid.major.x = element_line(color = "#F3F3F3")) +
           scale_colour_manual(values = myPal) +
           scale_y_reverse(labels=c(1:length(unique(data$method))), breaks=c(1:length(unique(data$method)))) +
-          ggtitle("AUROC ranking")
+          ggtitle(expression(paste(bold("A."), "   AUROC ranking")))
 pl.roc
 pl.pr <- ggplot(data, aes(x = no.net, y = pr.rank, colour = method)) +
           geom_line(size = 2, alpha = 0.8) +
@@ -56,7 +56,7 @@ pl.pr <- ggplot(data, aes(x = no.net, y = pr.rank, colour = method)) +
           theme(panel.grid.major.x = element_line(color = "#F3F3F3")) +
           scale_colour_manual(values = myPal) +
           scale_y_reverse(labels=c(1:length(unique(data$method))), breaks=c(1:length(unique(data$method)))) +
-          ggtitle("AUPR ranking")
+          ggtitle(expression(paste(bold("B."), "   AUPR ranking")))
 
 pl.pr
 pdf(paste("../plots/", dname,"_", mname,"_", sym, "accuracy.pdf", sep=""), height=4, width=12.5)
@@ -64,7 +64,7 @@ p <- grid.arrange(arrangeGrob(pl.roc, pl.pr, nrow=1))
 dev.off()
 
 
-mname = "mnet"
+mname = "netb"
 sym = "sym_"
 bnf = "BNFinderL2I30"
 dname = "gnw"
@@ -82,14 +82,16 @@ pl.roc <- ggplot(data, aes(x=method, y=AUROC, fill=no.net)) +
           geom_bar(stat="identity", position=position_dodge()) +
           geom_text(aes(label=round(AUROC, 2)), vjust=1.6, color="#0e0e0f",
                 position = position_dodge(0.9), size=3.5)+
-          scale_fill_manual(values=c("#33D47F","#FB6099"))
+          scale_fill_manual(values=c("#33D47F","#FB6099")) +
+          ggtitle(expression(paste(bold("A."), "   Evaluation by AUROC")))
 
 pl.pr <- ggplot(data, aes(x=method, y=AUPR, fill=no.net)) +
   geom_bar(stat="identity", position=position_dodge()) +
   geom_text(aes(label=round(AUPR, 2)), vjust=1.6, color="#0e0e0f",
             position = position_dodge(0.9), size=3.5)+
   scale_fill_manual(values=c("#33D47F","#FB6099")) +
-  theme(legend.position="bottom", legend.title=element_blank())
+  theme(legend.position="bottom", legend.title=element_blank()) +
+  ggtitle(expression(paste(bold("A."), "   Evaluation by AUPR")))
 
 g_legend<-function(a.gplot){
   tmp <- ggplot_gtable(ggplot_build(a.gplot))
@@ -138,14 +140,16 @@ pl.roc <- ggplot(data, aes(x=method, y=AUROC, fill=eval)) +
   geom_bar(stat="identity", position=position_dodge()) +
   geom_text(aes(label=round(AUROC, 2)), vjust=1.6, color="#0e0e0f",
             position = position_dodge(0.9), size=3.5)+
-  scale_fill_manual(values=c("#FDF06E","#4A9AF6"))
+  scale_fill_manual(values=c("#FDF06E","#4A9AF6")) +
+  ggtitle(expression(paste(bold("A."), "   Evaluation by AUROC")))
 
 pl.pr <- ggplot(data, aes(x=method, y=AUPR, fill=eval)) +
   geom_bar(stat="identity", position=position_dodge()) +
   geom_text(aes(label=round(AUPR, 2)), vjust=1.6, color="#0e0e0f",
             position = position_dodge(0.9), size=3.5)+
   scale_fill_manual(values=c("#FDF06E","#4A9AF6")) +
-  theme(legend.position="bottom", legend.title=element_blank())
+  theme(legend.position="bottom", legend.title=element_blank()) +
+  ggtitle(expression(paste(bold("B."), "   Evaluation by AUPR")))
 
 g_legend<-function(a.gplot){
   tmp <- ggplot_gtable(ggplot_build(a.gplot))
